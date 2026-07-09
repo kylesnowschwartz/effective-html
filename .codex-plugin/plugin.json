@@ -1,6 +1,6 @@
 {
   "name": "plannotator-effective-html",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "One effective-html skill that routes between artifact, diagram, and plan modes for pragmatic, self-contained HTML.",
   "author": {
     "name": "plannotator",

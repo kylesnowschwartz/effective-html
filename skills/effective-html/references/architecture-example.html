@@ -122,17 +122,50 @@
   #detail .meta { font-family: var(--mono); font-size: 10.5px; color: var(--muted); margin-bottom: 8px; }
   #detail p { font-size: 12.5px; line-height: 1.55; }
   #detail p code, #flowcap code { font-family: var(--mono); font-size: 11px; color: var(--clay); }
+
+  /* collapse-to-pill — the detail card defaults to a compact pill so it never
+     sits over the diagram until you ask for detail by clicking a node. This is
+     the root fix for floating cards obscuring content: reserve nothing, show
+     the card only on demand, and give one control to tuck it away again. */
+  .card-min {
+    position: absolute; top: 10px; right: 12px; width: 22px; height: 22px;
+    display: grid; place-items: center; padding: 0;
+    border: 1px solid var(--line); border-radius: 6px; background: var(--surface);
+    color: var(--muted); font-family: var(--mono); font-size: 13px; line-height: 1; cursor: pointer;
+  }
+  .card-min:hover { color: var(--ink); border-color: var(--muted); }
+  #detail .card-inner { padding-right: 18px; }
+  .card-pill { display: none; }
+  #detail.collapsed { width: auto; max-width: 300px; padding: 0; cursor: pointer; }
+  #detail.collapsed .card-inner, #detail.collapsed .card-min { display: none; }
+  #detail.collapsed .card-pill {
+    display: flex; align-items: center; gap: 9px; width: 100%; padding: 9px 14px;
+    border: 0; background: none; text-align: left; cursor: pointer;
+    font-family: var(--mono); font-size: 11px; letter-spacing: 0.03em; color: var(--muted);
+  }
+  #detail.collapsed:hover .card-pill { color: var(--ink); }
+  .card-pill .chev {
+    width: 0; height: 0; margin-left: auto;
+    border-left: 4px solid transparent; border-right: 4px solid transparent;
+    border-bottom: 5px solid currentColor;
+  }
+
   #flowcap { left: 16px; bottom: 16px; max-width: 460px; display: none; }
   #flowcap.show { display: block; }
-  #flowcap .fname { font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--clay); margin-bottom: 6px; }
+  #flowcap.dismissed { display: none; }
+  #flowcap .fname { font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--clay); margin-bottom: 6px; padding-right: 22px; }
   #flowcap ol { margin-left: 18px; }
   #flowcap li { font-size: 12.5px; line-height: 1.55; }
   .src { position: absolute; top: 10px; right: 16px; font-family: var(--mono); font-size: 10px; color: var(--muted); opacity: 0.8; }
   @media (max-width: 880px) {
     body { overflow: auto; }
     .stage { min-height: 70vh; }
-    #detail { position: static; width: auto; margin: 10px 16px; }
+    #detail, #detail.collapsed { position: static; width: auto; max-width: none; margin: 10px 16px; padding: 14px 16px; cursor: default; }
+    #detail.collapsed .card-inner { display: block; padding-right: 0; }
+    #detail .card-inner { padding-right: 0; }
+    #detail .card-min, #detail.collapsed .card-min, #detail.collapsed .card-pill { display: none; }
     #flowcap { position: static; margin: 0 16px 16px; }
+    #flowcap .card-min { display: none; }
   }
 </style>
 </head>
@@ -347,14 +380,21 @@
   <div class="src">research/ARCHITECTURE.md v2 · spec.yaml 0.13.0</div>
 
   <div class="card" id="flowcap">
+    <button type="button" class="card-min" id="f-dismiss" aria-label="Dismiss caption">×</button>
     <div class="fname" id="f-name"></div>
     <ol id="f-steps"></ol>
   </div>
 
-  <div class="card" id="detail">
-    <h3 id="d-title">Click anything</h3>
-    <div class="meta" id="d-meta">node detail</div>
-    <p id="d-body">Every box is clickable. The chips up top light up the request paths — Create, Live edit, Agent edit, Public read, Login, HTML render.</p>
+  <div class="card collapsed" id="detail">
+    <button type="button" class="card-min" id="d-min" aria-label="Collapse detail">–</button>
+    <button type="button" class="card-pill" id="d-pill" aria-label="Show node detail">
+      <span id="d-pill-label">Click any box for detail</span><span class="chev" aria-hidden="true"></span>
+    </button>
+    <div class="card-inner">
+      <h3 id="d-title">Click anything</h3>
+      <div class="meta" id="d-meta">node detail</div>
+      <p id="d-body">Every box is clickable. The chips up top light up the request paths — Create, Live edit, Agent edit, Public read, Login, HTML render.</p>
+    </div>
   </div>
 </div>
 <script>
@@ -424,6 +464,11 @@ const edges = document.querySelectorAll('.edge');
 const elbls = document.querySelectorAll('.elbl');
 const chips = document.querySelectorAll('.chip');
 const fcap = document.getElementById('flowcap');
+const detail = document.getElementById('detail');
+const dPillLabel = document.getElementById('d-pill-label');
+const setDetail = collapsed => detail.classList.toggle('collapsed', collapsed);
+document.getElementById('d-min').addEventListener('click', () => setDetail(true));
+document.getElementById('d-pill').addEventListener('click', () => setDetail(false));
 
 function setFlow(key) {
   chips.forEach(c => c.classList.toggle('on', c.dataset.flow === key));
@@ -438,8 +483,10 @@ function setFlow(key) {
   f.nodes.forEach(k => document.querySelector(`.node[data-k="${k}"]`)?.classList.add('lit'));
   document.getElementById('f-name').textContent = f.name;
   document.getElementById('f-steps').innerHTML = f.steps.map(s => `<li>${s}</li>`).join('');
+  fcap.classList.remove('dismissed');
   fcap.classList.add('show');
 }
+document.getElementById('f-dismiss').addEventListener('click', () => fcap.classList.add('dismissed'));
 chips.forEach(c => c.addEventListener('click', () => setFlow(c.dataset.flow)));
 
 nodes.forEach(n => n.addEventListener('click', () => {
@@ -450,6 +497,8 @@ nodes.forEach(n => n.addEventListener('click', () => {
   document.getElementById('d-title').textContent = d.t;
   document.getElementById('d-meta').textContent = d.m;
   document.getElementById('d-body').innerHTML = d.b;
+  dPillLabel.textContent = d.t;
+  setDetail(false);
 }));
 
 document.getElementById('themeToggle').addEventListener('click', () => {
