@@ -134,11 +134,16 @@
   --muted: var(--gray-600);
   --fill: var(--gray-500);
 
-  --s1: var(--clay);
-  --s2: var(--indigo);
-  --s3: var(--teal);
-  --s4: var(--ochre);
-  --s5: var(--plum);
+  /* Slot order is fixed and never cycled. Indigo leads so a single-series chart
+     reads as data rather than as branding, and clay sits last because it is also
+     the accent, which stays reserved for emphasis. The order is chosen by
+     measured adjacent separation: this arrangement lifts the worst adjacent
+     tritan pair from 6.6 to 14.9 light and 16.0 dark. */
+  --s1: var(--indigo);
+  --s2: var(--ochre);
+  --s3: var(--plum);
+  --s4: var(--teal);
+  --s5: var(--clay);
 
   --critical: var(--red);
   --critical-mark: var(--red);
@@ -165,11 +170,11 @@ html.dark {
   --muted: var(--gray-350);
   --fill: var(--gray-500);
 
-  --s1: var(--clay-on-dark);
-  --s2: var(--indigo-on-dark);
-  --s3: var(--teal-on-dark);
-  --s4: var(--ochre-on-dark);
-  --s5: var(--plum-on-dark);
+  --s1: var(--indigo-on-dark);
+  --s2: var(--ochre-on-dark);
+  --s3: var(--plum-on-dark);
+  --s4: var(--teal-on-dark);
+  --s5: var(--clay-on-dark);
 
   --critical: var(--red-text-on-dark);
   --critical-mark: var(--red-mark-on-dark);
@@ -231,11 +236,11 @@ html {
     --ink: var(--slate);
     --body: var(--gray-700);
     --muted: var(--gray-600);
-    --s1: var(--clay);
-    --s2: var(--indigo);
-    --s3: var(--teal);
-    --s4: var(--ochre);
-    --s5: var(--plum);
+    --s1: var(--indigo);
+    --s2: var(--ochre);
+    --s3: var(--plum);
+    --s4: var(--teal);
+    --s5: var(--clay);
     --critical: var(--red);
     --critical-mark: var(--red);
     --warning: var(--amber);
