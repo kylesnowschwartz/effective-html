@@ -32,8 +32,26 @@ REFERENCES = REPO / "skills" / "effective-html" / "references"
 # set is a violation, not a judgement call — that is the point of closing them.
 # ---------------------------------------------------------------------------
 
-TYPE_SCALE = (11, 13, 16, 18, 21, 24, 30, 38, 44, 52)
+TYPE_SCALE = (11, 13, 16, 18, 21, 24, 30, 38, 52)
 BODY_FLOOR = 16  # smallest size legal for sustained reading
+
+# Georgia, Menlo, Consolas, DejaVu and Liberation each ship two weights, and
+# Segoe UI has no 500 face, so 500 renders as 400 and 600 renders as full bold
+# on most platforms. Only these two values mean what they say everywhere.
+WEIGHTS = (400, 700)
+
+# Properties that thin stems on one platform, or do nothing anywhere.
+INERT_PROPERTIES = (
+    "-webkit-font-smoothing",
+    "-moz-osx-font-smoothing",
+    "text-rendering",
+    "font-optical-sizing",
+)
+
+# The serif face ships oldstyle figures with no lining or tabular alternates,
+# so its digits vary 39% in width and no CSS corrects it.
+SERIF_TOKENS = ("--font-display", "--serif")
+RE_FIGURE_ONLY = re.compile(r"^[\s$€£+\-−]*[\d][\d,.\s%×x/:–—-]*[a-zA-Z%]{0,3}$")
 SPACING = (0, 2, 4, 8, 12, 16, 20, 24, 32, 48, 64, 96)
 RADII = (4, 8, 12, 999)
 WIDTH_TOKENS = {
@@ -520,8 +538,101 @@ def rule_control_target(path: Path, text: str) -> list[Violation]:
     return out
 
 
+RE_WEIGHT = re.compile(r"font-weight:\s*([0-9]+)")
+RE_PRINT_BLOCK = re.compile(r"@media\s+print")
+
+
+def rule_weight(path: Path, text: str) -> list[Violation]:
+    """Only 400 and 700 render as written across platforms."""
+    out = []
+    for offset, css in stylesheets(text):
+        for match in RE_WEIGHT.finditer(css):
+            weight = int(match.group(1))
+            if weight not in WEIGHTS:
+                intended = "400" if weight < 600 else "700"
+                out.append(
+                    Violation(
+                        path,
+                        line_of(text, offset + match.start()),
+                        "weight",
+                        f"font-weight {weight} is not one of {WEIGHTS}; it renders as "
+                        f"{intended} on most platforms. Change family or size for emphasis",
+                    )
+                )
+    return out
+
+
+def rule_inert_property(path: Path, text: str) -> list[Violation]:
+    """Properties that thin stems on macOS only, or do nothing at all."""
+    out = []
+    for offset, css in stylesheets(text):
+        for prop in INERT_PROPERTIES:
+            for match in re.finditer(re.escape(prop) + r"\s*:", css):
+                out.append(
+                    Violation(
+                        path,
+                        line_of(text, offset + match.start()),
+                        "inert-property",
+                        f"{prop} thins stems on macOS only or is inert everywhere; remove it",
+                    )
+                )
+    return out
+
+
+def rule_print_block(path: Path, text: str) -> list[Violation]:
+    """These documents get printed, and dark mode prints black without this."""
+    if RE_PRINT_BLOCK.search(text):
+        return []
+    return [
+        Violation(
+            path,
+            1,
+            "print-block",
+            "no @media print block; prefers-color-scheme is not suppressed for print, "
+            "so a dark-mode reader exports a black page",
+        )
+    ]
+
+
+def rule_serif_figures(path: Path, text: str) -> list[Violation]:
+    """Digits set in the serif face jump 39% in width and cannot be corrected."""
+    serif_classes: set[str] = set()
+    for _, css in stylesheets(text):
+        for rule_match in re.finditer(r"([^{}]+)\{([^{}]*)\}", css):
+            selector, body = rule_match.group(1), rule_match.group(2)
+            refs = [r.group(1) for r in RE_VAR_REF.finditer(body)]
+            if "font-family" not in body or not any(t in refs for t in SERIF_TOKENS):
+                continue
+            serif_classes.update(re.findall(r"\.([A-Za-z][\w-]*)", selector))
+    if not serif_classes:
+        return []
+
+    out = []
+    for element in re.finditer(
+        r"<(\w+)[^>]*\bclass=\"([^\"]*)\"[^>]*>([^<]*)</\1>", text
+    ):
+        if not set(element.group(2).split()) & serif_classes:
+            continue
+        content = element.group(3).strip()
+        if content and RE_FIGURE_ONLY.match(content):
+            out.append(
+                Violation(
+                    path,
+                    line_of(text, element.start()),
+                    "serif-figures",
+                    f"{content!r} is a figure set in the serif face, whose oldstyle digits "
+                    "vary 39% in width with no lining or tabular alternate; use the data face",
+                )
+            )
+    return out
+
+
 RULES = {
     "type": rule_type,
+    "weight": rule_weight,
+    "inert-property": rule_inert_property,
+    "print-block": rule_print_block,
+    "serif-figures": rule_serif_figures,
     "body-floor": rule_body_floor,
     "spacing": rule_spacing,
     "radius": rule_radius,
