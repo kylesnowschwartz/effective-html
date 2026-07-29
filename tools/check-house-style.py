@@ -373,6 +373,12 @@ def rule_contrast(path: Path, text: str) -> list[Violation]:
                 fg = literal_colour(colour_decl.group(1), table)
                 if not fg or not surface:
                     continue
+                # A block painting text lighter than the page, without declaring its
+                # own background, sits on a surface set by a sibling rule (.chip and
+                # .chip.critical). The surface is unknowable from one block, so
+                # measuring against the page would invent a failure.
+                if own_bg is None and luminance(fg[1]) >= luminance(surface[1]):
+                    continue
                 ratio = contrast(fg[1], surface[1])
                 if ratio < AA_BODY:
                     out.append(
@@ -412,26 +418,81 @@ def rule_body_floor(path: Path, text: str) -> list[Violation]:
     return out
 
 
+RE_STATUS_TOKEN = re.compile(r"critical|warning|positive|danger|success|error")
+
+
 def rule_redundant_encoding(path: Path, text: str) -> list[Violation]:
-    """Status colour must never be the only carrier of meaning."""
+    """Status colour must never be the only carrier of meaning.
+
+    Scoped to the elements that actually wear a status colour, because a
+    document-wide search for a marker passes trivially — every long file in this
+    corpus contains at least one <title> in some SVG. An element painted with a
+    status token must carry its own text or marker inside it.
+    """
     light = declared_tokens(text, ":root")
-    status = [name for name in light if re.search(r"critical|warning|positive|danger|success", name)]
-    if not status:
+    if not any(RE_STATUS_TOKEN.search(name) for name in light):
         return []
-    used = [name for name in status if f"var({name})" in text]
-    if not used:
+
+    # Classes whose rule block paints with a status token.
+    painted: set[str] = set()
+    for _, css in stylesheets(text):
+        for rule_match in re.finditer(r"([^{}]+)\{([^{}]*)\}", css):
+            selector, body = rule_match.group(1), rule_match.group(2)
+            refs = [r.group(1) for r in RE_VAR_REF.finditer(body)]
+            if not any(RE_STATUS_TOKEN.search(name) for name in refs):
+                continue
+            painted.update(re.findall(r"\.([A-Za-z][\w-]*)", selector))
+    if not painted:
         return []
-    if REDUNDANT_ENCODING.search(text):
-        return []
-    return [
-        Violation(
-            path,
-            1,
-            "redundant-encoding",
-            f"status tokens in use ({', '.join(used)}) with no icon, arrow or label anywhere; "
-            "colour must not carry meaning alone",
+
+    out: list[Violation] = []
+    for element in re.finditer(
+        r"<(\w+)([^>]*\bclass=\"([^\"]*)\"[^>]*)>(.*?)</\1>", text, re.DOTALL
+    ):
+        classes = set(element.group(3).split())
+        if not classes & painted:
+            continue
+        attrs, inner = element.group(2), element.group(4)
+        stripped = re.sub(r"<[^>]+>", "", inner).strip()
+        if stripped or REDUNDANT_ENCODING.search(attrs) or REDUNDANT_ENCODING.search(inner):
+            continue
+        out.append(
+            Violation(
+                path,
+                line_of(text, element.start()),
+                "redundant-encoding",
+                f"<{element.group(1)} class=\"{element.group(3)}\"> is painted with a status "
+                "colour but carries no text, icon or label; colour must not carry meaning alone",
+            )
         )
-    ]
+    return out
+
+
+RE_CONTROL = re.compile(r"\b(?:button|\.btn|\[role=\"button\"\]|\.control|\.tab|\.chip-btn)\b")
+
+
+def control_height(body: str) -> tuple[float, str] | None:
+    """Static estimate of a control's rendered height, and how it was derived.
+
+    An explicit height wins. Otherwise most controls in this corpus size by
+    padding, so the estimate is vertical padding plus a line box; ignoring that
+    case is what let the rule pass on every real button.
+    """
+    for dimension in ("min-height", "height"):
+        match = re.search(rf"(?<![-\w]){dimension}:\s*([0-9.]+)px", body)
+        if match:
+            return float(match.group(1)), dimension
+
+    padding = re.search(r"(?<![-\w])padding:\s*([^;}]+)", body)
+    if not padding:
+        return None
+    values = [float(v) for v in RE_PX_VALUE.findall(padding.group(1))]
+    if not values:
+        return None
+    vertical = values[0]  # 1-, 2- and 3-value forms all put the block edge first
+    size_match = RE_FONT_SIZE.search(body)
+    line_box = float(size_match.group(1)) * 1.4 if size_match else 16 * 1.4
+    return 2 * vertical + line_box, "padding + line box"
 
 
 def rule_control_target(path: Path, text: str) -> list[Violation]:
@@ -440,21 +501,22 @@ def rule_control_target(path: Path, text: str) -> list[Violation]:
     for offset, css in stylesheets(text):
         for rule_match in re.finditer(r"([^{}]+)\{([^{}]*)\}", css):
             selector, body = rule_match.group(1).strip(), rule_match.group(2)
-            if not re.search(r"\b(?:button|\.btn|\[role=\"button\"\]|\.control|\.tab)\b", selector):
+            if not RE_CONTROL.search(selector):
                 continue
-            for dimension in ("height", "min-height"):
-                for size_match in re.finditer(rf"(?<!-){dimension}:\s*([0-9.]+)px", body):
-                    size = float(size_match.group(1))
-                    if size < 44:
-                        out.append(
-                            Violation(
-                                path,
-                                line_of(text, offset + rule_match.start()),
-                                "control-target",
-                                f"control {selector!r} is {size:g}px tall, under the 44px "
-                                f"target of WCAG 2.2 SC 2.5.5; use the {CONTROL_TARGET}px rung",
-                            )
-                        )
+            estimate = control_height(body)
+            if estimate is None:
+                continue
+            height, basis = estimate
+            if height < 44:
+                out.append(
+                    Violation(
+                        path,
+                        line_of(text, offset + rule_match.start()),
+                        "control-target",
+                        f"control {selector!r} is ~{height:g}px tall ({basis}), under the 44px "
+                        f"target of WCAG 2.2 SC 2.5.5; use the {CONTROL_TARGET}px rung",
+                    )
+                )
     return out
 
 
