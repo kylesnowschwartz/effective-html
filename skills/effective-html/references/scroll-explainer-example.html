@@ -13,75 +13,123 @@
   })();
 </script>
 <style>
-  /* Two layers. The reference palette names pigments and never changes between
-     modes; role tokens name jobs and select a pigment per mode. Only the
-     reference layer holds colour literals, so a palette change is one block. */
+  /* Two layers. The reference palette names pigments and holds every colour
+     literal; role tokens name jobs and select a pigment per mode. Dark mode
+     selects different steps rather than inverting, so a palette change is one
+     block. This is the house style token block — see house-style-tokens.css. */
   :root {
-    /* reference palette */
-    --ivory: #FAF9F5; --white: #FFFFFF;
-    --gray-150: #F0EEE6; --gray-250: #E6E3DA; --gray-300: #D1CFC5;
-    --gray-450: #9A998F; --gray-500: #87867F; --gray-700: #3D3D3A;
-    --slate: #141413; --slate-900: #1F1F1D; --slate-800: #2A2A28;
-    --clay: #D97757; --clay-on-dark: #E48A6E;
-    /* categorical pigments — the set passes the colourblind-safety checks in
-       both modes; the dark steps are chosen against the dark surface, not flipped */
-    --azure: #2a78d6; --azure-on-dark: #3987e5;
-    --tangerine: #eb6834; --tangerine-on-dark: #d95926;
-    --jade: #1baf7a; --jade-on-dark: #199e70;
+    /* reference: neutrals */
+    --ivory: #FAF9F5; --white: #FFFFFF; --wash-l: #F0EEE6;
+    --oat: #E3DACC; --line-l: #D1CFC5; --line-strong-l: #BBB7AC;
+    --gray-500: #87867F; --gray-600: #605F58; --gray-700: #3D3D3A;
+    --slate: #141413; --slate-900: #1E1D1A; --slate-800: #282721;
+    --slate-700: #333229; --slate-600: #3E3D38; --slate-500: #51504A;
+    --gray-350: #B4B3AB; --gray-250: #CECDC5; --paper: #F2F0EA;
 
-    /* role tokens — light */
-    --bg: var(--ivory); --surface: var(--white); --surface2: var(--gray-150);
-    --ink: var(--slate); --body: var(--gray-700); --muted: var(--gray-500);
-    --line: var(--gray-300); --line-soft: var(--gray-250);
-    --accent: var(--clay); --accent-soft: rgba(217,119,87,0.10);
-    --s1: var(--azure); --s2: var(--tangerine); --s3: var(--jade);
-    --s1-soft: rgba(42,120,214,0.12);
-    --rule: var(--gray-500);
+    /* reference: five series hues, one step per mode. The set passes the
+       palette validator under --pairs all against each mode's own surface. */
+    --clay: #994210; --clay-on-dark: #bf4f04;
+    --indigo: #5168b9; --indigo-on-dark: #5c77df;
+    --teal: #00a1a2; --teal-on-dark: #009ea0;
+    --ochre: #8d7f00; --ochre-on-dark: #a79700;
+    --plum: #733378; --plum-on-dark: #98449e;
+
+    /* reference: status. Dark carries a separate mark step because the
+       categorical lightness band governs marks, not text. */
+    --red: #971a20; --red-text-on-dark: #f87b5c; --red-mark-on-dark: #ca3403;
+    --amber: #896a00; --amber-text-on-dark: #f6c330; --amber-mark-on-dark: #b78d00;
+    --blue: #2757b6; --blue-text-on-dark: #79b4ff; --blue-mark-on-dark: #026cd1;
+
+    /* reference: families. ui-serif and ui-monospace resolve only in Safari;
+       the named faces do the real work, and Liberation/DejaVu are Linux. */
+    --font-prose: system-ui, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --font-display: ui-serif, Georgia, "Liberation Serif", "Noto Serif",
+                    "DejaVu Serif", "Times New Roman", serif;
+    --font-data: ui-monospace, Menlo, Consolas, "Liberation Mono",
+                 "DejaVu Sans Mono", monospace;
+
+    /* type: nine steps, named by job */
+    --text-micro: 0.6875rem; --text-meta: 0.8125rem; --text-body: 1rem;
+    --text-lead: 1.125rem; --text-h4: 1.3125rem; --text-h3: 1.5rem;
+    --text-h2: 1.875rem; --text-h1: 2.375rem; --text-display: 3.25rem;
+    --text-body-display: 1.125rem; --text-meta-data: 0.75rem;
+
+    /* weight: two values. 500 is a no-op and 600 is full bold on the serif
+       and mono faces, so emphasis changes family or size instead. */
+    --weight-normal: 400; --weight-bold: 700;
+
+    --leading-tight: 1.15; --leading-snug: 1.35;
+    --leading-normal: 1.55; --leading-loose: 1.7;
+    --track-caps: 0.08em; --track-micro: 0.04em; --track-display: -0.02em;
+
+    /* space: twelve rungs on a 4pt grid */
+    --sp-0: 0px; --sp-2: 2px; --sp-4: 4px; --sp-8: 8px;
+    --sp-12: 12px; --sp-16: 16px; --sp-20: 20px; --sp-24: 24px;
+    --sp-32: 32px; --sp-48: 48px; --sp-64: 64px; --sp-96: 96px;
+
+    --r-4: 4px; --r-8: 8px; --r-12: 12px; --r-full: 999px;
+
+    --w-rail: 278px; --w-steps: 320px; --w-measure: 540px;
+    --shell-wide: 1320px;
+    --shadow-card: 0 6px 24px rgba(0, 0, 0, 0.08);
+    --shadow-edge: 0 10px 16px -12px rgba(0, 0, 0, 0.45);
+
+    /* role: light */
+    --bg: var(--ivory); --surface: var(--white); --wash: var(--wash-l);
+    --line: var(--line-l); --line-strong: var(--line-strong-l);
+    --ink: var(--slate); --body: var(--gray-700); --muted: var(--gray-600);
+    --fill: var(--gray-500);
+    --accent: var(--clay); --accent-soft: rgba(153, 66, 16, 0.10);
+    --s1: var(--clay); --s2: var(--indigo); --s3: var(--teal);
+    --s4: var(--ochre); --s5: var(--plum);
+    --s1-soft: rgba(153, 66, 16, 0.12);
+    --rule: var(--muted);
     --ease: cubic-bezier(0.4, 0, 0.2, 1);
-    --serif: ui-serif, Georgia, "Times New Roman", serif;
-    --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-    --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
   }
   html.dark {
-    /* role tokens — dark selects different steps, never inverts */
-    --bg: var(--slate); --surface: var(--slate-900); --surface2: var(--slate-800);
-    --ink: var(--ivory); --body: var(--gray-300); --muted: var(--gray-500);
-    --line: var(--gray-700); --line-soft: var(--slate-800);
-    --accent: var(--clay-on-dark); --accent-soft: rgba(228,138,110,0.14);
-    --s1: var(--azure-on-dark); --s2: var(--tangerine-on-dark); --s3: var(--jade-on-dark);
-    --s1-soft: rgba(57,135,229,0.16);
-    --rule: var(--gray-450);
+    /* role: dark selects different steps, never inverts */
+    --bg: var(--slate); --surface: var(--slate-900); --wash: var(--slate-800);
+    --line: var(--slate-600); --line-strong: var(--slate-500);
+    --ink: var(--paper); --body: var(--gray-250); --muted: var(--gray-350);
+    --fill: var(--gray-500);
+    --accent: var(--clay-on-dark); --accent-soft: rgba(191, 79, 4, 0.16);
+    --s1: var(--clay-on-dark); --s2: var(--indigo-on-dark); --s3: var(--teal-on-dark);
+    --s4: var(--ochre-on-dark); --s5: var(--plum-on-dark);
+    --s1-soft: rgba(191, 79, 4, 0.16);
+    --shadow-card: 0 6px 24px rgba(0, 0, 0, 0.45);
+    /* Light-on-dark reads heavier at the same weight, and a weight step down is
+       unavailable on two-weight faces, so loosen leading instead. */
+    --leading-normal: 1.65;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  html { scroll-behavior: smooth; }
+  html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
   body {
-    background: var(--bg); color: var(--body); font-family: var(--sans);
-    -webkit-font-smoothing: antialiased; line-height: 1.55;
+    background: var(--bg); color: var(--body); font-family: var(--font-prose); line-height: var(--leading-normal);
   }
 
   /* ── top bar, with the read-progress rail on its bottom edge ── */
   .bar {
     position: sticky; top: 0; z-index: 40;
     display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
-    padding: 10px 22px; background: var(--bg);
-    border-bottom: 1px solid var(--line-soft);
+    padding: var(--sp-12) var(--sp-24); background: var(--bg);
+    border-bottom: 1px solid var(--line);
   }
   .prog {
     position: absolute; left: 0; bottom: -1px; height: 3px; width: 0%;
     background: linear-gradient(90deg, var(--s1), var(--accent));
   }
   /* brand slot — swap the inline mark for the team's logo, keep the box size */
-  .brand { display: flex; align-items: center; gap: 10px; }
+  .brand { display: flex; align-items: center; gap: var(--sp-12); }
   .brand svg { display: block; width: 200px; height: 45px; }
   .brand .team {
-    font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.12em;
+    font-family: var(--font-data); font-size: var(--text-micro); letter-spacing: var(--track-caps);
     text-transform: uppercase; color: var(--muted);
-    padding: 3px 8px; border: 1px solid var(--line); border-radius: 999px;
+    padding: var(--sp-4) var(--sp-8); border: 1px solid var(--line); border-radius: var(--r-full);
   }
   .spacer { flex: 1; }
   .btn {
-    font-family: var(--mono); font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.08em;
-    padding: 5px 10px; border: 1px solid var(--line); border-radius: 6px;
+    font-family: var(--font-data); font-size: var(--text-meta-data); text-transform: uppercase; letter-spacing: var(--track-caps);
+    padding: var(--sp-8) var(--sp-12); min-height: var(--sp-24); border: 1px solid var(--line); border-radius: var(--r-8);
     background: transparent; color: var(--muted); cursor: pointer;
   }
   .btn:hover { color: var(--ink); border-color: var(--muted); }
@@ -90,28 +138,28 @@
   /* ── hero: says plainly that scrolling is the interface ── */
   .hero {
     min-height: 80vh; display: flex; flex-direction: column; justify-content: center;
-    max-width: 1320px; margin: 0 auto; padding: 40px 22px 24px;
+    max-width: var(--shell-wide); margin: 0 auto; padding: var(--sp-48) var(--sp-24) var(--sp-24);
   }
   .kicker {
-    font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.12em;
-    text-transform: uppercase; color: var(--muted); margin-bottom: 10px;
+    font-family: var(--font-data); font-size: var(--text-micro); letter-spacing: var(--track-caps);
+    text-transform: uppercase; color: var(--muted); margin-bottom: var(--sp-12);
   }
   .hero h1 {
-    font-family: var(--serif); font-weight: 500; font-size: clamp(30px, 4.6vw, 50px);
-    color: var(--ink); letter-spacing: -0.02em; line-height: 1.1; max-width: 20ch; margin-bottom: 14px;
+    font-family: var(--font-display); font-weight: var(--weight-normal); font-size: var(--text-h1);
+    color: var(--ink); letter-spacing: var(--track-display); line-height: var(--leading-tight); max-width: 20ch; margin-bottom: var(--sp-16);
   }
-  .hero p { max-width: 62ch; font-size: 16.5px; }
+  .hero p { max-width: var(--w-measure); font-size: var(--text-body); }
   .cue {
-    margin-top: 42px; display: inline-flex; align-items: center; gap: 9px;
-    font-family: var(--mono); font-size: 11.5px; letter-spacing: 0.1em;
+    margin-top: var(--sp-48); display: inline-flex; align-items: center; gap: var(--sp-8);
+    font-family: var(--font-data); font-size: var(--text-micro); letter-spacing: var(--track-caps);
     text-transform: uppercase; color: var(--muted);
   }
   .cue span:last-child { animation: bob 1.9s ease-in-out infinite; }
   @keyframes bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(6px); } }
 
   .scrolly {
-    max-width: 1320px; margin: 0 auto; padding: 0 22px;
-    display: grid; grid-template-columns: minmax(280px, 370px) 1fr; gap: 44px; align-items: start;
+    max-width: var(--shell-wide); margin: 0 auto; padding: var(--sp-0) var(--sp-24);
+    display: grid; grid-template-columns: minmax(var(--w-rail), var(--w-steps)) 1fr; gap: var(--sp-48); align-items: start;
   }
 
   /* ── steps column: each step is a fixed scroll slot, so every step gets the
@@ -121,8 +169,8 @@
     min-height: 78vh; display: flex; flex-direction: column; justify-content: center;
   }
   .step-card {
-    background: var(--surface); border: 1px solid var(--line-soft); border-radius: 12px;
-    padding: 18px 20px;
+    background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-12);
+    padding: var(--sp-20) var(--sp-20);
   }
   html.js .step-card {
     opacity: 0.38; transform: translateY(12px);
@@ -131,109 +179,109 @@
   }
   html.js .step.active .step-card {
     opacity: 1; transform: translateY(0);
-    border-color: var(--line); box-shadow: 0 8px 28px rgba(0,0,0,0.07);
+    border-color: var(--line); box-shadow: var(--shadow-card);
   }
   .step .n {
-    font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.12em;
-    text-transform: uppercase; color: var(--accent); margin-bottom: 6px;
+    font-family: var(--font-data); font-size: var(--text-micro); letter-spacing: var(--track-caps);
+    text-transform: uppercase; color: var(--accent); margin-bottom: var(--sp-8);
   }
   .step h2 {
-    font-family: var(--serif); font-weight: 500; font-size: 20px;
-    color: var(--ink); letter-spacing: -0.01em; margin-bottom: 8px;
+    font-family: var(--font-display); font-weight: var(--weight-normal); font-size: var(--text-h4);
+    color: var(--ink); letter-spacing: -0.01em; margin-bottom: var(--sp-8);
   }
-  .step p { font-size: 14px; }
+  .step p { font-size: var(--text-body); }
   .why {
-    margin-top: 12px; padding: 10px 12px; border-left: 2px solid var(--s1);
-    background: var(--s1-soft); border-radius: 0 8px 8px 0;
-    font-size: 13.5px; color: var(--body);
+    margin-top: var(--sp-12); padding: var(--sp-12) var(--sp-12); border-left: 2px solid var(--s1);
+    background: var(--s1-soft); border-radius: 0 var(--r-8) var(--r-8) 0;
+    font-size: var(--text-body); color: var(--body);
   }
   html.js .why { opacity: 0; transform: translateY(6px); transition: opacity .45s var(--ease) .1s, transform .45s var(--ease) .1s; }
   html.js .step.active .why { opacity: 1; transform: none; }
-  .why b { color: var(--ink); font-weight: 600; }
-  .why .num { font-family: var(--mono); font-size: 13px; color: var(--ink); }
+  .why b { color: var(--ink); font-weight: var(--weight-bold); }
+  .why .num { font-family: var(--font-data); font-size: var(--text-meta); color: var(--ink); }
 
   /* ── sticky visual ───────────────────────── */
   /* No top padding here — padding on a sticky box offsets it forever and wastes
      the top of the viewport. */
-  .viz { position: sticky; top: 74px; padding: 14px 0 0; }
+  .viz { position: sticky; top: 74px; padding: var(--sp-16) var(--sp-0) var(--sp-0); }
   .panel {
-    background: var(--surface); border: 1px solid var(--line); border-radius: 14px; overflow: hidden;
+    background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-12); overflow: hidden;
   }
   .panel-head {
-    display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap;
-    padding: 14px 18px 10px;
+    display: flex; align-items: baseline; gap: var(--sp-12); flex-wrap: wrap;
+    padding: var(--sp-16) var(--sp-20) var(--sp-12);
   }
-  .panel-head h3 { font-family: var(--serif); font-weight: 500; font-size: 17px; color: var(--ink); }
-  .panel-head .unit { font-family: var(--mono); font-size: 10.5px; color: var(--muted); letter-spacing: 0.06em; text-transform: uppercase; }
+  .panel-head h3 { font-family: var(--font-display); font-weight: var(--weight-normal); font-size: var(--text-lead); color: var(--ink); }
+  .panel-head .unit { font-family: var(--font-data); font-size: var(--text-micro); color: var(--muted); letter-spacing: var(--track-caps); text-transform: uppercase; }
 
-  .legend { display: flex; gap: 14px; flex-wrap: wrap; padding: 0 18px 10px; }
-  .lg { display: flex; align-items: center; gap: 6px; font-family: var(--mono); font-size: 11px; color: var(--muted); transition: opacity .35s var(--ease); }
-  .lg i { width: 11px; height: 11px; border-radius: 3px; display: block; }
+  .legend { display: flex; gap: var(--sp-16); flex-wrap: wrap; padding: var(--sp-0) var(--sp-20) var(--sp-12); }
+  .lg { display: flex; align-items: center; gap: var(--sp-8); font-family: var(--font-data); font-size: var(--text-meta-data); color: var(--muted); transition: opacity .35s var(--ease); }
+  .lg i { width: 11px; height: 11px; border-radius: var(--r-4); display: block; }
   .lg.off { opacity: 0.3; }
 
-  .chart { padding: 0 8px 4px; }
+  .chart { padding: var(--sp-0) var(--sp-8) var(--sp-4); }
   .chart svg { display: block; width: 100%; height: auto; }
 
   /* chart marks — every fill and stroke comes from a theme variable */
-  .grid line { stroke: var(--line-soft); stroke-width: 1; }
-  .axis text { font-family: var(--mono); font-size: 10.5px; fill: var(--muted); }
+  .grid line { stroke: var(--line); stroke-width: 1; }
+  .axis text { font-family: var(--font-data); font-size: var(--text-micro); fill: var(--muted); }
   .seg { transition: y .55s var(--ease), height .55s var(--ease), opacity .35s var(--ease); }
   .seg.base { fill: var(--s1); }
   .seg.buf  { fill: var(--s2); }
   .seg.top  { fill: var(--s3); }
-  .seg.cut  { fill: var(--line-soft); }
+  .seg.cut  { fill: var(--line); }
   /* A step change glides; a slider drag has to track the thumb, so the same
      marks switch to a short linear transition while a control is live. */
   .chart.live .seg, .chart.live .lab, .chart.live .rule { transition-duration: .12s; transition-timing-function: linear; }
   .lab { transition: transform .55s var(--ease); }
-  .lab text { font-family: var(--mono); font-size: 10.5px; fill: var(--ink); }
+  .lab text { font-family: var(--font-data); font-size: var(--text-micro); fill: var(--ink); }
   .rule { transition: transform .55s var(--ease), opacity .35s var(--ease); }
   .rule line { stroke: var(--rule); stroke-width: 1.5; stroke-dasharray: 6 4; }
-  .rule text { font-family: var(--mono); font-size: 10.5px; fill: var(--muted); }
+  .rule text { font-family: var(--font-data); font-size: var(--text-micro); fill: var(--muted); }
   .rule.cap line { stroke: var(--accent); }
   .rule.cap text { fill: var(--accent); }
   .rule.hide { opacity: 0; }
 
   /* ── readout + controls ──────────────────── */
   .readout {
-    display: flex; gap: 26px; flex-wrap: wrap; align-items: flex-end;
-    padding: 12px 18px 14px; border-top: 1px solid var(--line-soft);
+    display: flex; gap: var(--sp-24); flex-wrap: wrap; align-items: flex-end;
+    padding: var(--sp-12) var(--sp-20) var(--sp-16); border-top: 1px solid var(--line);
   }
-  .stat .k { font-family: var(--mono); font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
-  .stat .v { font-family: var(--serif); font-size: 26px; color: var(--ink); line-height: 1.1; }
-  .stat .v small { font-family: var(--mono); font-size: 11px; color: var(--muted); }
+  .stat .k { font-family: var(--font-data); font-size: var(--text-micro); letter-spacing: var(--track-caps); text-transform: uppercase; color: var(--muted); }
+  .stat .v { font-family: var(--font-data); font-size: var(--text-h3); color: var(--ink); line-height: var(--leading-tight); font-variant-numeric: tabular-nums; }
+  .stat .v small { font-family: var(--font-data); font-size: var(--text-meta-data); color: var(--muted); }
 
   .controls {
-    display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 14px 22px;
-    padding: 14px 18px 16px; border-top: 1px solid var(--line-soft); background: var(--surface2);
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: var(--sp-16) var(--sp-24);
+    padding: var(--sp-16) var(--sp-20) var(--sp-16); border-top: 1px solid var(--line); background: var(--wash);
   }
   .ctl { transition: opacity .35s var(--ease); }
   .ctl.pending { opacity: 0.35; }
   .ctl label {
-    display: flex; justify-content: space-between; align-items: baseline; gap: 8px;
-    font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.06em;
-    text-transform: uppercase; color: var(--muted); margin-bottom: 6px;
+    display: flex; justify-content: space-between; align-items: baseline; gap: var(--sp-8);
+    font-family: var(--font-data); font-size: var(--text-micro); letter-spacing: var(--track-caps);
+    text-transform: uppercase; color: var(--muted); margin-bottom: var(--sp-8);
   }
-  .ctl label b { font-size: 12px; color: var(--ink); letter-spacing: 0; text-transform: none; }
+  .ctl label b { font-size: var(--text-meta-data); color: var(--ink); letter-spacing: 0; text-transform: none; }
   .ctl input[type=range] { width: 100%; accent-color: var(--accent); }
-  .ctl .toggle { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--body); }
+  .ctl .toggle { display: flex; align-items: center; gap: var(--sp-8); font-size: var(--text-meta); color: var(--body); }
   .ctl .toggle input { accent-color: var(--accent); width: 15px; height: 15px; }
-  .ctl .hint { font-size: 11.5px; color: var(--muted); margin-top: 4px; }
+  .ctl .hint { font-size: var(--text-meta); color: var(--muted); margin-top: var(--sp-4); }
 
   /* ── data table (identity never by colour alone) ── */
-  .table-wrap { border-top: 1px solid var(--line-soft); padding: 0 18px 16px; }
+  .table-wrap { border-top: 1px solid var(--line); padding: var(--sp-0) var(--sp-20) var(--sp-16); }
   .table-wrap[hidden] { display: none; }
-  table { width: 100%; border-collapse: collapse; font-family: var(--mono); font-size: 11.5px; margin-top: 12px; }
-  th, td { text-align: right; padding: 4px 6px; border-bottom: 1px solid var(--line-soft); color: var(--body); }
-  th { color: var(--muted); font-weight: 400; letter-spacing: 0.06em; text-transform: uppercase; font-size: 10px; }
+  table { width: 100%; border-collapse: collapse; font-family: var(--font-data); font-size: var(--text-meta-data); margin-top: var(--sp-12); font-variant-numeric: tabular-nums; }
+  th, td { text-align: right; padding: var(--sp-4) var(--sp-8); border-bottom: 1px solid var(--line); color: var(--body); }
+  th { color: var(--muted); font-weight: var(--weight-normal); letter-spacing: var(--track-caps); text-transform: uppercase; font-size: var(--text-micro); }
   th:first-child, td:first-child { text-align: left; }
   tfoot td { color: var(--ink); border-bottom: none; }
 
-  footer { max-width: 1320px; margin: 0 auto; padding: 28px 22px 60px; font-size: 12.5px; color: var(--muted); }
+  footer { max-width: var(--shell-wide); margin: 0 auto; padding: var(--sp-32) var(--sp-24) var(--sp-64); font-size: var(--text-meta); color: var(--muted); }
 
   noscript .ns {
-    display: block; max-width: 1320px; margin: 12px auto 0; padding: 10px 14px;
-    border: 1px solid var(--line); border-radius: 8px; font-size: 13px;
+    display: block; max-width: var(--shell-wide); margin: var(--sp-12) auto var(--sp-0); padding: var(--sp-12) var(--sp-16);
+    border: 1px solid var(--line); border-radius: var(--r-8); font-size: var(--text-meta);
   }
 
   /* ── narrow viewports: stack, chart on top ── */
@@ -243,13 +291,14 @@
        usually breaks. Bound the pane to the top half of the screen, raise it above
        the steps, and let it scroll internally to reach the controls. */
     .viz {
-      position: sticky; top: 56px; order: -1; z-index: 5; padding: 8px 0 10px;
+      position: sticky; top: 56px; order: -1; z-index: 5; padding: var(--sp-8) var(--sp-0) var(--sp-12);
       background: var(--bg); max-height: 48vh; overflow-y: auto;
-      box-shadow: 0 10px 16px -12px rgba(0,0,0,0.45);
+      box-shadow: var(--shadow-edge);
     }
-    .readout { gap: 16px; padding: 9px 16px 10px; }
-    .stat .v { font-size: 20px; }
+    .readout { gap: var(--sp-16); padding: var(--sp-8) var(--sp-16) var(--sp-12); }
+    .stat .v { font-size: var(--text-h4); }
     .step { min-height: 92vh; justify-content: flex-end; padding-bottom: 4vh; }
+    .hero h1 { font-size: var(--text-h2); }
     .hero { min-height: 62vh; }
     .brand svg { width: 150px; height: 34px; }
   }
@@ -261,6 +310,49 @@
     html.js .step-card, html.js .why, .ctl, .lg, .seg, .lab, .rule { transition: none; }
     html.js .step-card, html.js .why { transform: none; }
     .cue span:last-child { animation: none; }
+  }
+
+  /* prefers-color-scheme is not suppressed for print, so without this reset a
+     reader whose OS is dark exports a black page. A scroll explainer also has to
+     stop being scroll-driven: every step reveals, the sticky pane unsticks, and
+     the chart prints once at the state it is in. */
+  @media print {
+    :root, html.dark {
+      color-scheme: light;
+      --bg: var(--ivory); --surface: var(--white); --wash: var(--wash-l);
+      --line: var(--line-l); --line-strong: var(--line-strong-l);
+      --ink: var(--slate); --body: var(--gray-700); --muted: var(--gray-600);
+      --accent: var(--clay); --accent-soft: rgba(153, 66, 16, 0.10);
+      --s1: var(--clay); --s2: var(--indigo); --s3: var(--teal);
+      --s4: var(--ochre); --s5: var(--plum);
+      --s1-soft: rgba(153, 66, 16, 0.12);
+      --shadow-card: none; --shadow-edge: none;
+      --leading-normal: 1.45;
+    }
+    html { scroll-behavior: auto; }
+    body { background: var(--bg); color: var(--body); -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .bar, .prog, .cue, .controls { display: none; }
+    .hero { min-height: 0; padding: var(--sp-0) var(--sp-0) var(--sp-24); }
+    .scrolly { display: block; padding: var(--sp-0); }
+    .viz { position: static; max-height: none; overflow: visible; padding: var(--sp-0); }
+    .steps { padding-bottom: var(--sp-0); }
+    .step { min-height: 0; padding-bottom: var(--sp-16); break-inside: avoid; }
+    /* The reveal is scroll-driven, so without this every step but the active one
+       prints at 38% opacity and its reasoning is lost. !important is load-bearing
+       here: the screen rule carries equal specificity and the reveal must not
+       survive onto paper. Transitions go too, or the rasteriser can catch a
+       transitioned opacity mid-flight. */
+    html.js .step-card, html.js .why {
+      opacity: 1 !important; transform: none !important;
+      box-shadow: none !important; transition: none !important;
+    }
+    .panel, .step-card { break-inside: avoid; }
+    .table-wrap[hidden] { display: block; }
+    thead { display: table-header-group; }
+    tr { break-inside: avoid; }
+    h1, h2, h3 { break-after: avoid; }
+    p { orphans: 3; widows: 3; }
+    @page { margin: 16mm; }
   }
 </style>
 </head>
