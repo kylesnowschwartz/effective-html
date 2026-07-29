@@ -57,14 +57,19 @@ RADII = (4, 8, 12, 999)
 WIDTH_TOKENS = {
     "--w-rail": 278,
     "--w-text": 726,
-    "--w-measure": 680,
+    "--w-measure": 540,
     "--shell": 1100,
     "--shell-read": 808,
     "--shell-wide": 1320,
     "--w-steps": 320,
     "--w-pane": 840,
+    "--w-card": 344,
+    "--w-card-wide": 464,
 }
-CONTROL_TARGET = 48  # the spacing rung that clears WCAG 2.2 SC 2.5.5's 44px
+# SC 2.5.8 Target Size (Minimum) is the AA floor at 24x24 CSS px, and AA is the
+# conformance target throughout this style. SC 2.5.5's 44x44 is AAA; treat it as
+# a recommendation for primary actions rather than a gate.
+CONTROL_TARGET = 24
 
 # Text roles must clear WCAG AA at body size. Ratios are against the mode's own
 # --bg, which is why one shared muted pigment cannot serve both modes.
@@ -87,7 +92,9 @@ RE_ROOT_BLOCK = re.compile(r"(?::root|html\.dark)\s*\{(.*?)\}", re.DOTALL)
 RE_HEX = re.compile(r"#[0-9a-fA-F]{3,8}\b")
 RE_FUNC_COLOUR = re.compile(r"\b(?:rgba?|hsla?|oklch|oklab|lab|lch)\s*\(", re.IGNORECASE)
 RE_SVG_PAINT = re.compile(r"\b(?:fill|stroke|stop-color|flood-color)=\"([^\"]+)\"")
-RE_MAX_WIDTH = re.compile(r"max-width:\s*([0-9.]+)px")
+# A leading "(" means this is a media-query breakpoint, which is a condition
+# rather than a layout width and answers to the viewport, not the width set.
+RE_MAX_WIDTH = re.compile(r"(?<!\()max-width:\s*([0-9.]+)px")
 RE_RADIUS = re.compile(r"border-radius:\s*([^;}]+)")
 RE_DARK_MODE = re.compile(r"html\.dark|\[data-theme|prefers-color-scheme")
 RE_STYLE_BLOCK = re.compile(r"<style[^>]*>(.*?)</style>", re.DOTALL | re.IGNORECASE)
@@ -525,14 +532,14 @@ def rule_control_target(path: Path, text: str) -> list[Violation]:
             if estimate is None:
                 continue
             height, basis = estimate
-            if height < 44:
+            if height < CONTROL_TARGET:
                 out.append(
                     Violation(
                         path,
                         line_of(text, offset + rule_match.start()),
                         "control-target",
-                        f"control {selector!r} is ~{height:g}px tall ({basis}), under the 44px "
-                        f"target of WCAG 2.2 SC 2.5.5; use the {CONTROL_TARGET}px rung",
+                        f"control {selector!r} is ~{height:g}px tall ({basis}), under the "
+                        f"{CONTROL_TARGET}px AA floor of WCAG 2.2 SC 2.5.8",
                     )
                 )
     return out
