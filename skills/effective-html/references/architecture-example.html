@@ -67,6 +67,25 @@
   .stage { flex: 1; position: relative; min-height: 0; }
   .stage svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
 
+  /* pan + zoom — a diagram worth drawing outgrows the viewport, so the stage is
+     a viewport onto it rather than the whole of it. Only the wide layout gets
+     this: the narrow layout scrolls the page, and hijacking drag or wheel there
+     would trap the reader above the cards. */
+  .stage.pz svg { cursor: grab; touch-action: none; }
+  .stage.pz.dragging svg, .stage.pz.dragging .node { cursor: grabbing; }
+  .stage.pz.settling #svg-content { transition: transform .28s ease; }
+  @media (prefers-reduced-motion: reduce) { .stage.pz.settling #svg-content { transition: none; } }
+
+  .zoomctl { display: none; align-items: center; gap: 2px; }
+  .zoomctl.on { display: flex; }
+  .zoomctl button {
+    font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.08em;
+    padding: 5px 9px; border: 1px solid var(--line); border-radius: 6px;
+    background: transparent; color: var(--muted); cursor: pointer;
+  }
+  .zoomctl button:hover { color: var(--ink); border-color: var(--muted); }
+  .zoomctl #zoomLevel { min-width: 46px; text-align: center; font-variant-numeric: tabular-nums; }
+
   /* zones */
   .zone rect { fill: var(--zone); stroke: var(--zone-line); stroke-width: 1; stroke-dasharray: 5 5; rx: 16; }
   .zone .ztitle { font-family: var(--mono); font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase; fill: var(--muted); }
@@ -186,6 +205,11 @@
     <button class="chip" data-flow="login">Login</button>
     <button class="chip" data-flow="render">HTML render</button>
   </div>
+  <div class="zoomctl" id="zoomctl">
+    <button type="button" id="zoomOut" aria-label="Zoom out">−</button>
+    <button type="button" id="zoomReset" aria-label="Reset zoom to 100%"><span id="zoomLevel">100%</span></button>
+    <button type="button" id="zoomIn" aria-label="Zoom in">+</button>
+  </div>
   <button id="themeToggle">Theme</button>
 </div>
 
@@ -199,6 +223,8 @@
       <path d="M0,0 L10,5 L0,10 z" style="fill: var(--clay)"/>
     </marker>
   </defs>
+  <!-- everything pannable lives in one group; its transform is the whole camera -->
+  <g id="svg-content">
   <!-- ── zones ─────────────────────────────── -->
   <g class="zone" id="z-clients">
     <rect x="40" y="120" width="250" height="600"/>
@@ -375,6 +401,7 @@
     <text class="m" x="375" y="858">separate domain · cookieless</text>
     <text class="m" x="375" y="874">untrusted HTML can never touch a login</text>
   </g>
+  </g>
 </svg>
 
   <div class="src">research/ARCHITECTURE.md v2 · spec.yaml 0.13.0</div>
@@ -500,6 +527,129 @@ nodes.forEach(n => n.addEventListener('click', () => {
   dPillLabel.textContent = d.t;
   setDetail(false);
 }));
+
+/* ── pan + zoom ────────────────────────────────────────────────────────────
+   The stage is a viewport onto a diagram bigger than it. One transform on
+   #svg-content is the whole camera: translate in viewBox units, then scale. */
+const svg = stage.querySelector('svg');
+const content = document.getElementById('svg-content');
+const zoomctl = document.getElementById('zoomctl');
+const zoomLevel = document.getElementById('zoomLevel');
+const WIDE = matchMedia('(min-width: 881px)');
+const MIN_K = 0.6, MAX_K = 4, DRAG_SLOP = 5;
+
+let k = 1, tx = 0, ty = 0;
+let panning = false, dragged = false;
+let startX = 0, startY = 0, startTx = 0, startTy = 0;
+let swallowNextClick = false;
+
+function draw() {
+  content.setAttribute('transform', `translate(${tx.toFixed(2)} ${ty.toFixed(2)}) scale(${k.toFixed(4)})`);
+  zoomLevel.textContent = Math.round(k * 100) + '%';
+}
+
+/* viewBox units per screen pixel. Set by the fitted viewBox, so it is constant
+   — and it is NOT the zoom scale. Dividing the mouse delta by k is the tempting
+   bug: it makes dragging feel sluggish exactly when you are zoomed in and
+   leaning on it most. */
+function unitsPerPixel() {
+  const m = svg.getScreenCTM();
+  return m ? 1 / m.a : 1;
+}
+
+function toViewBox(clientX, clientY) {
+  const m = svg.getScreenCTM();
+  if (!m) return { x: 0, y: 0 };
+  return new DOMPoint(clientX, clientY).matrixTransform(m.inverse());
+}
+
+/* Zoom about a point: the content under `anchor` has to stay under it. */
+function zoomTo(next, anchor) {
+  next = Math.min(MAX_K, Math.max(MIN_K, next));
+  if (next === k) return;
+  tx = anchor.x - (anchor.x - tx) * (next / k);
+  ty = anchor.y - (anchor.y - ty) * (next / k);
+  k = next;
+}
+
+function settle(move) {
+  stage.classList.add('settling');
+  move();
+  draw();
+  setTimeout(() => stage.classList.remove('settling'), 320);
+}
+
+const stageCentre = () => {
+  const r = svg.getBoundingClientRect();
+  return toViewBox(r.left + r.width / 2, r.top + r.height / 2);
+};
+
+svg.addEventListener('pointerdown', e => {
+  if (!stage.classList.contains('pz') || e.button !== 0) return;
+  swallowNextClick = false;   // clears a guard stranded by a release off-window
+  panning = true; dragged = false;
+  startX = e.clientX; startY = e.clientY; startTx = tx; startTy = ty;
+  stage.classList.remove('settling');
+  /* Capturing here would retarget the compatibility mouse events to the <svg>,
+     so a plain click would never reach the node that was clicked. Capture is
+     claimed in pointermove instead, once this is definitely a drag. */
+});
+
+svg.addEventListener('pointermove', e => {
+  if (!panning) return;
+  const dx = e.clientX - startX, dy = e.clientY - startY;
+  if (!dragged) {
+    if (Math.hypot(dx, dy) <= DRAG_SLOP) return;
+    dragged = true;
+    stage.classList.add('dragging');
+    svg.setPointerCapture(e.pointerId);
+  }
+  const u = unitsPerPixel();
+  tx = startTx + dx * u;
+  ty = startTy + dy * u;
+  draw();
+});
+
+function endPan(e) {
+  if (!panning) return;
+  panning = false;
+  stage.classList.remove('dragging');
+  if (svg.hasPointerCapture(e.pointerId)) svg.releasePointerCapture(e.pointerId);
+  if (dragged) swallowNextClick = true;   // a drag that ends on a node is not a click
+}
+svg.addEventListener('pointerup', endPan);
+svg.addEventListener('pointercancel', endPan);
+
+stage.addEventListener('click', e => {
+  if (!swallowNextClick) return;
+  swallowNextClick = false;
+  e.stopPropagation();
+  e.preventDefault();
+}, true);
+
+svg.addEventListener('wheel', e => {
+  if (!stage.classList.contains('pz')) return;
+  e.preventDefault();
+  const lines = e.deltaMode === 1 ? e.deltaY * 16 : e.deltaY;
+  zoomTo(k * Math.pow(0.999, lines), toViewBox(e.clientX, e.clientY));
+  draw();
+}, { passive: false });
+
+document.getElementById('zoomIn').addEventListener('click', () => settle(() => zoomTo(k * 1.25, stageCentre())));
+document.getElementById('zoomOut').addEventListener('click', () => settle(() => zoomTo(k / 1.25, stageCentre())));
+document.getElementById('zoomReset').addEventListener('click', () => settle(() => { k = 1; tx = 0; ty = 0; }));
+
+/* The narrow layout scrolls the page, so it keeps native scroll and pinch —
+   claiming drag and wheel there would trap the reader above the cards. */
+function applyPanZoomMode() {
+  const on = WIDE.matches;
+  stage.classList.toggle('pz', on);
+  zoomctl.classList.toggle('on', on);
+  if (!on) { k = 1; tx = 0; ty = 0; }
+  draw();
+}
+WIDE.addEventListener('change', applyPanZoomMode);
+applyPanZoomMode();
 
 document.getElementById('themeToggle').addEventListener('click', () => {
   const dark = !document.documentElement.classList.contains('dark');
