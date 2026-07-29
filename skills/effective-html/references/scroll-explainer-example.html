@@ -1,0 +1,729 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Acme Restock — how each week's order is built</title>
+<script>
+  (function () {
+    const saved = localStorage.getItem('theme');
+    const dark = saved ? saved === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+    document.documentElement.classList.toggle('dark', dark);
+    document.documentElement.classList.add('js');
+  })();
+</script>
+<style>
+  :root {
+    --bg: #FAF9F5; --surface: #FFFFFF; --surface2: #F0EEE6;
+    --ink: #141413; --body: #3D3D3A; --muted: #87867F;
+    --line: #D1CFC5; --line-soft: #E6E3DA;
+    --accent: #D97757; --accent-soft: rgba(217,119,87,0.10);
+    /* categorical slots 1-3, validated colourblind-safe as a set in both modes */
+    --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a;
+    --s1-soft: rgba(42,120,214,0.12);
+    --rule: #87867F;
+    --ease: cubic-bezier(0.4, 0, 0.2, 1);
+    --serif: ui-serif, Georgia, "Times New Roman", serif;
+    --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  }
+  html.dark {
+    --bg: #141413; --surface: #1F1F1D; --surface2: #2A2A28;
+    --ink: #FAF9F5; --body: #D1CFC5; --muted: #87867F;
+    --line: #3D3D3A; --line-soft: #2A2A28;
+    --accent: #E48A6E; --accent-soft: rgba(228,138,110,0.14);
+    --s1: #3987e5; --s2: #d95926; --s3: #199e70;
+    --s1-soft: rgba(57,135,229,0.16);
+    --rule: #9A998F;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    background: var(--bg); color: var(--body); font-family: var(--sans);
+    -webkit-font-smoothing: antialiased; line-height: 1.55;
+  }
+
+  /* ── top bar, with the read-progress rail on its bottom edge ── */
+  .bar {
+    position: sticky; top: 0; z-index: 40;
+    display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+    padding: 10px 22px; background: var(--bg);
+    border-bottom: 1px solid var(--line-soft);
+  }
+  .prog {
+    position: absolute; left: 0; bottom: -1px; height: 3px; width: 0%;
+    background: linear-gradient(90deg, var(--s1), var(--accent));
+  }
+  /* brand slot — swap the inline mark for the team's logo, keep the box size */
+  .brand { display: flex; align-items: center; gap: 10px; }
+  .brand svg { display: block; width: 200px; height: 45px; }
+  .brand .team {
+    font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.12em;
+    text-transform: uppercase; color: var(--muted);
+    padding: 3px 8px; border: 1px solid var(--line); border-radius: 999px;
+  }
+  .spacer { flex: 1; }
+  .btn {
+    font-family: var(--mono); font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.08em;
+    padding: 5px 10px; border: 1px solid var(--line); border-radius: 6px;
+    background: transparent; color: var(--muted); cursor: pointer;
+  }
+  .btn:hover { color: var(--ink); border-color: var(--muted); }
+  .btn.on { background: var(--ink); border-color: var(--ink); color: var(--bg); }
+
+  /* ── hero: says plainly that scrolling is the interface ── */
+  .hero {
+    min-height: 80vh; display: flex; flex-direction: column; justify-content: center;
+    max-width: 1320px; margin: 0 auto; padding: 40px 22px 24px;
+  }
+  .kicker {
+    font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.12em;
+    text-transform: uppercase; color: var(--muted); margin-bottom: 10px;
+  }
+  .hero h1 {
+    font-family: var(--serif); font-weight: 500; font-size: clamp(30px, 4.6vw, 50px);
+    color: var(--ink); letter-spacing: -0.02em; line-height: 1.1; max-width: 20ch; margin-bottom: 14px;
+  }
+  .hero p { max-width: 62ch; font-size: 16.5px; }
+  .cue {
+    margin-top: 42px; display: inline-flex; align-items: center; gap: 9px;
+    font-family: var(--mono); font-size: 11.5px; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--muted);
+  }
+  .cue span:last-child { animation: bob 1.9s ease-in-out infinite; }
+  @keyframes bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(6px); } }
+
+  .scrolly {
+    max-width: 1320px; margin: 0 auto; padding: 0 22px;
+    display: grid; grid-template-columns: minmax(280px, 370px) 1fr; gap: 44px; align-items: start;
+  }
+
+  /* ── steps column: each step is a fixed scroll slot, so every step gets the
+       same travel and there is no dead gap between them ── */
+  .steps { padding-bottom: 26vh; }
+  .step {
+    min-height: 78vh; display: flex; flex-direction: column; justify-content: center;
+  }
+  .step-card {
+    background: var(--surface); border: 1px solid var(--line-soft); border-radius: 12px;
+    padding: 18px 20px;
+  }
+  html.js .step-card {
+    opacity: 0.38; transform: translateY(12px);
+    transition: opacity .4s var(--ease), transform .4s var(--ease),
+                border-color .4s var(--ease), box-shadow .4s var(--ease);
+  }
+  html.js .step.active .step-card {
+    opacity: 1; transform: translateY(0);
+    border-color: var(--line); box-shadow: 0 8px 28px rgba(0,0,0,0.07);
+  }
+  .step .n {
+    font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.12em;
+    text-transform: uppercase; color: var(--accent); margin-bottom: 6px;
+  }
+  .step h2 {
+    font-family: var(--serif); font-weight: 500; font-size: 20px;
+    color: var(--ink); letter-spacing: -0.01em; margin-bottom: 8px;
+  }
+  .step p { font-size: 14px; }
+  .why {
+    margin-top: 12px; padding: 10px 12px; border-left: 2px solid var(--s1);
+    background: var(--s1-soft); border-radius: 0 8px 8px 0;
+    font-size: 13.5px; color: var(--body);
+  }
+  html.js .why { opacity: 0; transform: translateY(6px); transition: opacity .45s var(--ease) .1s, transform .45s var(--ease) .1s; }
+  html.js .step.active .why { opacity: 1; transform: none; }
+  .why b { color: var(--ink); font-weight: 600; }
+  .why .num { font-family: var(--mono); font-size: 13px; color: var(--ink); }
+
+  /* ── sticky visual ───────────────────────── */
+  /* No top padding here — padding on a sticky box offsets it forever and wastes
+     the top of the viewport. */
+  .viz { position: sticky; top: 74px; padding: 14px 0 0; }
+  .panel {
+    background: var(--surface); border: 1px solid var(--line); border-radius: 14px; overflow: hidden;
+  }
+  .panel-head {
+    display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap;
+    padding: 14px 18px 10px;
+  }
+  .panel-head h3 { font-family: var(--serif); font-weight: 500; font-size: 17px; color: var(--ink); }
+  .panel-head .unit { font-family: var(--mono); font-size: 10.5px; color: var(--muted); letter-spacing: 0.06em; text-transform: uppercase; }
+
+  .legend { display: flex; gap: 14px; flex-wrap: wrap; padding: 0 18px 10px; }
+  .lg { display: flex; align-items: center; gap: 6px; font-family: var(--mono); font-size: 11px; color: var(--muted); transition: opacity .35s var(--ease); }
+  .lg i { width: 11px; height: 11px; border-radius: 3px; display: block; }
+  .lg.off { opacity: 0.3; }
+
+  .chart { padding: 0 8px 4px; }
+  .chart svg { display: block; width: 100%; height: auto; }
+
+  /* chart marks — every fill and stroke comes from a theme variable */
+  .grid line { stroke: var(--line-soft); stroke-width: 1; }
+  .axis text { font-family: var(--mono); font-size: 10.5px; fill: var(--muted); }
+  .seg { transition: y .55s var(--ease), height .55s var(--ease), opacity .35s var(--ease); }
+  .seg.base { fill: var(--s1); }
+  .seg.buf  { fill: var(--s2); }
+  .seg.top  { fill: var(--s3); }
+  .seg.cut  { fill: var(--line-soft); }
+  /* A step change glides; a slider drag has to track the thumb, so the same
+     marks switch to a short linear transition while a control is live. */
+  .chart.live .seg, .chart.live .lab, .chart.live .rule { transition-duration: .12s; transition-timing-function: linear; }
+  .lab { transition: transform .55s var(--ease); }
+  .lab text { font-family: var(--mono); font-size: 10.5px; fill: var(--ink); }
+  .rule { transition: transform .55s var(--ease), opacity .35s var(--ease); }
+  .rule line { stroke: var(--rule); stroke-width: 1.5; stroke-dasharray: 6 4; }
+  .rule text { font-family: var(--mono); font-size: 10.5px; fill: var(--muted); }
+  .rule.cap line { stroke: var(--accent); }
+  .rule.cap text { fill: var(--accent); }
+  .rule.hide { opacity: 0; }
+
+  /* ── readout + controls ──────────────────── */
+  .readout {
+    display: flex; gap: 26px; flex-wrap: wrap; align-items: flex-end;
+    padding: 12px 18px 14px; border-top: 1px solid var(--line-soft);
+  }
+  .stat .k { font-family: var(--mono); font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+  .stat .v { font-family: var(--serif); font-size: 26px; color: var(--ink); line-height: 1.1; }
+  .stat .v small { font-family: var(--mono); font-size: 11px; color: var(--muted); }
+
+  .controls {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 14px 22px;
+    padding: 14px 18px 16px; border-top: 1px solid var(--line-soft); background: var(--surface2);
+  }
+  .ctl { transition: opacity .35s var(--ease); }
+  .ctl.pending { opacity: 0.35; }
+  .ctl label {
+    display: flex; justify-content: space-between; align-items: baseline; gap: 8px;
+    font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.06em;
+    text-transform: uppercase; color: var(--muted); margin-bottom: 6px;
+  }
+  .ctl label b { font-size: 12px; color: var(--ink); letter-spacing: 0; text-transform: none; }
+  .ctl input[type=range] { width: 100%; accent-color: var(--accent); }
+  .ctl .toggle { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--body); }
+  .ctl .toggle input { accent-color: var(--accent); width: 15px; height: 15px; }
+  .ctl .hint { font-size: 11.5px; color: var(--muted); margin-top: 4px; }
+
+  /* ── data table (identity never by colour alone) ── */
+  .table-wrap { border-top: 1px solid var(--line-soft); padding: 0 18px 16px; }
+  .table-wrap[hidden] { display: none; }
+  table { width: 100%; border-collapse: collapse; font-family: var(--mono); font-size: 11.5px; margin-top: 12px; }
+  th, td { text-align: right; padding: 4px 6px; border-bottom: 1px solid var(--line-soft); color: var(--body); }
+  th { color: var(--muted); font-weight: 400; letter-spacing: 0.06em; text-transform: uppercase; font-size: 10px; }
+  th:first-child, td:first-child { text-align: left; }
+  tfoot td { color: var(--ink); border-bottom: none; }
+
+  footer { max-width: 1320px; margin: 0 auto; padding: 28px 22px 60px; font-size: 12.5px; color: var(--muted); }
+
+  noscript .ns {
+    display: block; max-width: 1320px; margin: 12px auto 0; padding: 10px 14px;
+    border: 1px solid var(--line); border-radius: 8px; font-size: 13px;
+  }
+
+  /* ── narrow viewports: stack, chart on top ── */
+  @media (max-width: 900px) {
+    .scrolly { grid-template-columns: 1fr; gap: 0; }
+    /* Stacked, the steps scroll up over the sticky pane — that is how this layout
+       usually breaks. Bound the pane to the top half of the screen, raise it above
+       the steps, and let it scroll internally to reach the controls. */
+    .viz {
+      position: sticky; top: 56px; order: -1; z-index: 5; padding: 8px 0 10px;
+      background: var(--bg); max-height: 48vh; overflow-y: auto;
+      box-shadow: 0 10px 16px -12px rgba(0,0,0,0.45);
+    }
+    .readout { gap: 16px; padding: 9px 16px 10px; }
+    .stat .v { font-size: 20px; }
+    .step { min-height: 92vh; justify-content: flex-end; padding-bottom: 4vh; }
+    .hero { min-height: 62vh; }
+    .brand svg { width: 150px; height: 34px; }
+  }
+
+  /* Reveals become instant rather than disappearing: dropping the transitions and
+     the translate leaves the active-step cue intact, with nothing in motion. */
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    html.js .step-card, html.js .why, .ctl, .lg, .seg, .lab, .rule { transition: none; }
+    html.js .step-card, html.js .why { transform: none; }
+    .cue span:last-child { animation: none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="bar">
+  <div class="brand">
+    <!-- brand slot: 200x45 -->
+    <svg viewBox="0 0 200 45" role="img" aria-label="Acme Supply Planning">
+      <rect x="0.75" y="0.75" width="43.5" height="43.5" rx="9" fill="none" stroke="var(--line)"/>
+      <path d="M13 32 L22.5 13 L32 32" fill="none" stroke="var(--accent)" stroke-width="2.4" stroke-linejoin="round"/>
+      <line x1="17.5" y1="25.5" x2="27.5" y2="25.5" stroke="var(--accent)" stroke-width="2.4"/>
+      <text x="56" y="21" font-family="ui-serif, Georgia, serif" font-size="16" fill="var(--ink)">Acme Supply</text>
+      <text x="56" y="35" font-family="ui-monospace, Menlo, monospace" font-size="10" letter-spacing="1.4" fill="var(--muted)">PLANNING</text>
+    </svg>
+    <span class="team">Team&nbsp;Ops</span>
+  </div>
+  <span class="spacer"></span>
+  <button class="btn" id="tableToggle" aria-pressed="false">Data table</button>
+  <button class="btn" id="themeToggle">Dark</button>
+  <div class="prog" id="prog" role="progressbar" aria-label="Progress through the explainer" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"></div>
+</div>
+
+<noscript><span class="ns">This page builds its chart, its figures and its step-by-step reasoning in the browser. Without JavaScript the five steps below still read in order as plain text, but the chart area stays empty and no numbers appear.</span></noscript>
+
+<section class="hero">
+  <div class="kicker">Scroll explainer · fictional data</div>
+  <h1>How each week's restock order is built</h1>
+  <p>Acme's warehouse turns twelve weeks of recorded demand into a purchase plan by adding four rules on top of it. Scroll to add one rule at a time; the chart rebuilds at every step. The sliders let you change the two assumptions that are judgement calls, not facts.</p>
+  <div class="cue"><span>Scroll to begin</span><span>↓</span></div>
+</section>
+
+<div class="scrolly">
+
+  <div class="steps" id="steps">
+    <article class="step" data-step="1">
+      <div class="step-card">
+        <div class="n">Step 1 · the record</div>
+        <h2>Start with what actually shipped</h2>
+        <p>Twelve weeks of units shipped from the Riverside warehouse. Nothing is adjusted yet — this is the raw record the whole plan is built on.</p>
+        <div class="why" data-why="1"></div>
+      </div>
+    </article>
+
+    <article class="step" data-step="2">
+      <div class="step-card">
+        <div class="n">Step 2 · the baseline</div>
+        <h2>Find the ordinary week</h2>
+        <p>A single week is noisy, so the plan works from the twelve-week average. Weeks above the line are the ones that drain stock faster than resupply replaces it.</p>
+        <div class="why" data-why="2"></div>
+      </div>
+    </article>
+
+    <article class="step" data-step="3">
+      <div class="step-card">
+        <div class="n">Step 3 · the buffer</div>
+        <h2>Add cover for a bad week</h2>
+        <p>Demand runs ahead of forecast about as often as it runs behind, so every week's order carries a safety buffer on top of recorded demand. The buffer percentage is a policy choice — move the slider and watch the orange band grow.</p>
+        <div class="why" data-why="3"></div>
+      </div>
+    </article>
+
+    <article class="step" data-step="4">
+      <div class="step-card">
+        <div class="n">Step 4 · the supplier floor</div>
+        <h2>Round up to the supplier's minimum</h2>
+        <p>The supplier will not ship a pallet below its minimum order. Quiet weeks get topped up to that floor whether the warehouse needs the units or not, which is where most of the excess stock comes from.</p>
+        <div class="why" data-why="4"></div>
+      </div>
+    </article>
+
+    <article class="step" data-step="5">
+      <div class="step-card">
+        <div class="n">Step 5 · the ceiling</div>
+        <h2>Trim anything the shelves cannot hold</h2>
+        <p>Riverside holds 320 units of this line. Any planned order above that is cut back before it is sent — the supplier top-up goes first, then the buffer. Turn the cap off to see the order the rules would produce with unlimited space.</p>
+        <div class="why" data-why="5"></div>
+      </div>
+    </article>
+  </div>
+
+  <div class="viz">
+    <div class="panel">
+      <div class="panel-head">
+        <h3>Planned order by week</h3>
+        <span class="unit">Units · Riverside · weeks 1–12</span>
+      </div>
+
+      <div class="legend" id="legend">
+        <span class="lg" data-lg="base"><i style="background:var(--s1)"></i> Recorded demand</span>
+        <span class="lg off" data-lg="buf"><i style="background:var(--s2)"></i> Safety buffer</span>
+        <span class="lg off" data-lg="top"><i style="background:var(--s3)"></i> Top-up to supplier minimum</span>
+        <span class="lg off" data-lg="cut"><i style="background:var(--line-soft);border:1px solid var(--line)"></i> Trimmed by capacity</span>
+      </div>
+
+      <div class="chart" id="chart"></div>
+
+      <div class="readout" aria-live="polite">
+        <div class="stat"><div class="k">Units ordered · 12 weeks</div><div class="v" id="statTotal">—</div></div>
+        <div class="stat"><div class="k">Above recorded demand</div><div class="v" id="statOver">—</div></div>
+        <div class="stat"><div class="k">Weeks hitting the cap</div><div class="v" id="statCapped">—</div></div>
+      </div>
+
+      <div class="controls">
+        <div class="ctl pending" data-from="3">
+          <label for="buffer">Safety buffer <b id="bufferVal">20%</b></label>
+          <input type="range" id="buffer" min="0" max="60" step="5" value="20">
+          <div class="hint">Percent added on top of each week's recorded demand.</div>
+        </div>
+        <div class="ctl pending" data-from="4">
+          <label for="minOrder">Supplier minimum <b id="minOrderVal">250</b></label>
+          <input type="range" id="minOrder" min="0" max="400" step="25" value="250">
+          <div class="hint">Smallest order the supplier will ship in one week.</div>
+        </div>
+        <div class="ctl pending" data-from="5">
+          <label for="cap">Warehouse cap</label>
+          <div class="toggle"><input type="checkbox" id="cap" checked> <span>Trim orders above 320 units</span></div>
+          <div class="hint">Off shows the plan the rules produce with unlimited shelf space.</div>
+        </div>
+      </div>
+
+      <div class="table-wrap" id="tableWrap" hidden></div>
+    </div>
+  </div>
+</div>
+
+<footer>All figures are fictional and used only to show the pattern. Recorded demand is the fixed input; every other number on this page is derived from it and from the two slider assumptions.</footer>
+
+<script>
+(function () {
+  'use strict';
+
+  /* ── data: the only hard-coded numbers on the page ── */
+  const DEMAND = [180, 205, 165, 240, 215, 190, 260, 300, 275, 230, 210, 195];
+  const CAPACITY = 320;
+  const BASELINE = Math.round(DEMAND.reduce((a, b) => a + b, 0) / DEMAND.length);
+  const PEAK = Math.max(...DEMAND);
+  const TROUGH = Math.min(...DEMAND);
+  const RAW_TOTAL = DEMAND.reduce((a, b) => a + b, 0);
+
+  /* ── one state object; steps and controls both write to it ── */
+  const state = { step: 1, buffer: 20, minOrder: 250, cap: true };
+
+  const n = v => v.toLocaleString('en-US');
+
+  /* Rules apply only once their step is reached, so the chart can never show a
+     state the reader has not scrolled to yet. */
+  function assumptions() {
+    return {
+      buffer: state.step >= 3 ? state.buffer : 0,
+      minOrder: state.step >= 4 ? state.minOrder : 0,
+      cap: state.step >= 5 ? state.cap : false
+    };
+  }
+
+  function plan() {
+    const a = assumptions();
+    return DEMAND.map(function (demand) {
+      let base = demand;
+      let buf = Math.round(demand * a.buffer / 100);
+      let top = Math.max(0, a.minOrder - (base + buf));
+      let cut = 0;
+      if (a.cap) {
+        let excess = Math.max(0, base + buf + top - CAPACITY);
+        cut = excess;
+        const fromTop = Math.min(top, excess); top -= fromTop; excess -= fromTop;
+        const fromBuf = Math.min(buf, excess); buf -= fromBuf; excess -= fromBuf;
+        base -= excess;
+      }
+      return { demand: demand, base: base, buf: buf, top: top, cut: cut, total: base + buf + top };
+    });
+  }
+
+  /* ── chart geometry ── */
+  /* A right gutter holds every rule label, so no annotation can ever land on a bar. */
+  const W = 940, H = 344, PAD = { t: 16, r: 136, b: 34, l: 50 };
+  const PLOT_W = W - PAD.l - PAD.r, PLOT_H = H - PAD.t - PAD.b;
+  const Y_MAX = 500;                       // fixed, so the scale never jumps between steps
+  const y = v => PAD.t + PLOT_H - (v / Y_MAX) * PLOT_H;
+  const band = PLOT_W / DEMAND.length;
+  const BAR_W = Math.min(46, band - 22);
+  const SEGMENTS = ['base', 'buf', 'top', 'cut'];
+  const RULES = ['baseline', 'minOrder', 'cap'];
+
+  /* The chart is built once and then updated in place. Rebuilding the markup on
+     every step would be simpler to write and would throw away every transition —
+     bars would jump between steps instead of growing into the new plan. */
+  const chartEl = document.getElementById('chart');
+  const marks = { seg: [], lab: [], rule: {} };
+
+  function buildChart() {
+    let s = '<svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="Planned order units by week, ' +
+            'stacked into recorded demand, safety buffer and supplier top-up">';
+
+    s += '<g class="grid">';
+    for (let v = 0; v <= Y_MAX; v += 100) {
+      s += '<line x1="' + PAD.l + '" x2="' + (W - PAD.r) + '" y1="' + y(v) + '" y2="' + y(v) + '"></line>';
+    }
+    s += '</g><g class="axis">';
+    for (let v = 0; v <= Y_MAX; v += 100) {
+      s += '<text x="' + (PAD.l - 10) + '" y="' + (y(v) + 3.5) + '" text-anchor="end">' + v + '</text>';
+    }
+    DEMAND.forEach(function (_, i) {
+      s += '<text x="' + (PAD.l + band * i + band / 2) + '" y="' + (H - 14) + '" text-anchor="middle">W' + (i + 1) + '</text>';
+    });
+    s += '</g>';
+
+    DEMAND.forEach(function (_, i) {
+      const x = PAD.l + band * i + (band - BAR_W) / 2;
+      s += '<g data-bar="' + i + '">';
+      SEGMENTS.forEach(function (name) {
+        s += '<rect class="seg ' + name + '" x="' + x.toFixed(1) + '" y="' + y(0) +
+             '" width="' + BAR_W + '" height="0" rx="3"></rect>';
+      });
+      s += '</g><g class="lab" data-lab="' + i + '"><text x="' + (x + BAR_W / 2) + '" y="0" text-anchor="middle"></text></g>';
+    });
+
+    RULES.forEach(function (name) {
+      s += '<g class="rule hide' + (name === 'cap' ? ' cap' : '') + '" data-rule="' + name + '">' +
+           '<line x1="' + PAD.l + '" x2="' + (W - PAD.r) + '" y1="0" y2="0"></line>' +
+           '<text x="' + (W - PAD.r + 10) + '" y="3.5"></text></g>';
+    });
+
+    chartEl.innerHTML = s + '</svg>';
+
+    DEMAND.forEach(function (_, i) {
+      const bar = chartEl.querySelector('[data-bar="' + i + '"]');
+      const cells = {};
+      SEGMENTS.forEach(function (name) { cells[name] = bar.querySelector('.' + name); });
+      marks.seg.push(cells);
+      marks.lab.push(chartEl.querySelector('[data-lab="' + i + '"]'));
+    });
+    RULES.forEach(function (name) {
+      const g = chartEl.querySelector('[data-rule="' + name + '"]');
+      marks.rule[name] = { g: g, text: g.querySelector('text') };
+    });
+  }
+
+  function place(rect, topV, bottomV) {
+    const top = y(topV), bottom = y(bottomV);
+    const h = Math.max(0, bottom - top - (bottomV > 0 ? 2 : 0));
+    rect.setAttribute('y', (bottom - h).toFixed(1));
+    rect.setAttribute('height', h.toFixed(1));
+  }
+
+  function updateChart(rows) {
+    const a = assumptions();
+
+    rows.forEach(function (r, i) {
+      const cells = marks.seg[i];
+      place(cells.base, r.base, 0);
+      place(cells.buf, r.base + r.buf, r.base);
+      place(cells.top, r.total, r.base + r.buf);
+      place(cells.cut, r.total + r.cut, r.total);
+      const lab = marks.lab[i];
+      lab.style.transform = 'translateY(' + (y(r.total + r.cut) - 7).toFixed(1) + 'px)';
+      lab.firstChild.textContent = r.total;
+    });
+
+    // rules, labelled in the right gutter and nudged apart so two rules never
+    // print their labels on top of each other
+    const shown = [];
+    if (state.step >= 2) shown.push({ name: 'baseline', v: BASELINE, text: '12-week average ' + BASELINE });
+    if (a.minOrder > 0) shown.push({ name: 'minOrder', v: a.minOrder, text: 'supplier min ' + a.minOrder });
+    if (a.cap) shown.push({ name: 'cap', v: CAPACITY, text: 'warehouse cap ' + CAPACITY });
+    shown.sort(function (p, q) { return q.v - p.v; });
+
+    RULES.forEach(function (name) { marks.rule[name].g.classList.add('hide'); });
+    let lastLabelY = -Infinity;
+    shown.forEach(function (r) {
+      const mark = marks.rule[r.name];
+      const ry = y(r.v);
+      const ly = Math.max(ry + 3.5, lastLabelY + 14);
+      lastLabelY = ly;
+      mark.g.classList.remove('hide');
+      mark.g.style.transform = 'translateY(' + ry.toFixed(1) + 'px)';
+      mark.text.setAttribute('y', (ly - ry).toFixed(1));
+      mark.text.textContent = r.text;
+    });
+  }
+
+  /* ── supporting panels ── */
+  const legendFor = { base: 1, buf: 3, top: 4, cut: 5 };
+
+  function renderLegend() {
+    document.querySelectorAll('.lg').forEach(function (el) {
+      el.classList.toggle('off', state.step < legendFor[el.dataset.lg]);
+    });
+  }
+
+  function renderControls() {
+    document.querySelectorAll('.ctl').forEach(function (el) {
+      el.classList.toggle('pending', state.step < Number(el.dataset.from));
+    });
+    document.getElementById('bufferVal').textContent = state.buffer + '%';
+    document.getElementById('minOrderVal').textContent = state.minOrder;
+  }
+
+  function renderStats(rows) {
+    const total = rows.reduce(function (t, r) { return t + r.total; }, 0);
+    const capped = rows.filter(function (r) { return r.cut > 0; }).length;
+    const over = total - RAW_TOTAL;
+    document.getElementById('statTotal').innerHTML = n(total);
+    document.getElementById('statOver').innerHTML = (over >= 0 ? '+' : '') + n(over) +
+      ' <small>' + (RAW_TOTAL ? Math.round(over / RAW_TOTAL * 100) : 0) + '%</small>';
+    document.getElementById('statCapped').innerHTML = capped + ' <small>of 12</small>';
+  }
+
+  function renderTable(rows) {
+    const wrap = document.getElementById('tableWrap');
+    if (wrap.hidden) return;
+    let t = '<table><thead><tr><th>Week</th><th>Recorded demand</th><th>Safety buffer</th>' +
+            '<th>Top-up</th><th>Trimmed</th><th>Ordered</th></tr></thead><tbody>';
+    rows.forEach(function (r, i) {
+      t += '<tr><td>W' + (i + 1) + '</td><td>' + r.demand + '</td><td>' + r.buf + '</td><td>' +
+           r.top + '</td><td>' + (r.cut || '—') + '</td><td>' + r.total + '</td></tr>';
+    });
+    const sum = function (k) { return rows.reduce(function (a, r) { return a + r[k]; }, 0); };
+    t += '</tbody><tfoot><tr><td>Total</td><td>' + n(RAW_TOTAL) + '</td><td>' + n(sum('buf')) +
+         '</td><td>' + n(sum('top')) + '</td><td>' + n(sum('cut')) + '</td><td>' + n(sum('total')) +
+         '</td></tr></tfoot></table>';
+    wrap.innerHTML = t;
+  }
+
+  /* Explanations are written from the same rows the chart draws, so the prose
+     cannot drift from the picture when a slider moves. */
+  function explain(step, rows) {
+    const a = assumptions();
+    const peakWeek = DEMAND.indexOf(PEAK) + 1;
+    const troughWeek = DEMAND.indexOf(TROUGH) + 1;
+    const sum = function (k) { return rows.reduce(function (t, r) { return t + r[k]; }, 0); };
+    const toppedWeeks = rows.filter(function (r) { return r.top > 0; }).length;
+    const cappedWeeks = rows.filter(function (r) { return r.cut > 0; }).length;
+
+    if (step === 1) {
+      return '<b>' + n(RAW_TOTAL) + ' units</b> shipped across the twelve weeks. Week ' + peakWeek +
+             ' was the busiest at <span class="num">' + PEAK + '</span>; week ' + troughWeek +
+             ' the quietest at <span class="num">' + TROUGH + '</span> — a swing of <span class="num">' +
+             (PEAK - TROUGH) + '</span> units the plan has to absorb.';
+    }
+    if (step === 2) {
+      const above = DEMAND.filter(function (d) { return d > BASELINE; }).length;
+      return 'The average week is <b>' + BASELINE + ' units</b>. <span class="num">' + above +
+             '</span> of 12 weeks sit above it, so ordering the average every week would leave the ' +
+             'warehouse short in ' + above + ' of them.';
+    }
+    if (step === 3) {
+      return 'A <b>' + a.buffer + '% buffer</b> adds <span class="num">' + n(sum('buf')) +
+             '</span> units over the quarter. It is a percentage rather than a flat number because a busy ' +
+             'week can miss forecast by more units than a quiet one — week ' + peakWeek + ' gains ' +
+             '<span class="num">' + rows[peakWeek - 1].buf + '</span>, week ' + troughWeek + ' only ' +
+             '<span class="num">' + rows[troughWeek - 1].buf + '</span>.';
+    }
+    if (step === 4) {
+      return toppedWeeks === 0
+        ? 'At a <b>' + a.minOrder + '-unit minimum</b> no week needs topping up — demand plus buffer already clears the floor everywhere.'
+        : '<b>' + toppedWeeks + ' of 12 weeks</b> fall below the ' + a.minOrder + '-unit minimum and get rounded up, adding <span class="num">' +
+          n(sum('top')) + '</span> units nobody forecast. This is the largest source of stock the warehouse did not ask for.';
+    }
+    return cappedWeeks === 0
+      ? 'Nothing is trimmed: every week\'s plan already fits under the <b>' + CAPACITY +
+        '-unit cap</b>. Total ordered is <b>' + n(sum('total')) + ' units</b>.'
+      : 'The cap removes <span class="num">' + n(sum('cut')) + '</span> units from <b>' + cappedWeeks +
+        ' week' + (cappedWeeks === 1 ? '' : 's') + '</b> — always the busiest ones. The top-up is cut first ' +
+        'and the buffer only after it runs out, so the weeks that lose their cover are the weeks that needed it most.';
+  }
+
+  function renderWhy(rows) {
+    for (let i = 1; i <= 5; i++) {
+      document.querySelector('[data-why="' + i + '"]').innerHTML = explain(i, rows);
+    }
+  }
+
+  /* ── the single render path ── */
+  function render() {
+    const rows = plan();
+    updateChart(rows);
+    renderLegend();
+    renderControls();
+    renderStats(rows);
+    renderTable(rows);
+    renderWhy(rows);
+  }
+
+  /* ── step activation: observe, never listen to scroll ── */
+  const stepEls = Array.prototype.slice.call(document.querySelectorAll('.step'));
+  /* Watch the card, not the slot around it. The slot is most of a screen tall and
+     sits wherever the layout puts it, so a band tuned to the slot fires while the
+     card the reader is meant to read is still off-screen. */
+  const cardEls = stepEls.map(function (el) { return el.querySelector('.step-card'); });
+
+  function activate(entries) {
+    entries.forEach(function (e) {
+      if (!e.isIntersecting) return;
+      const slot = e.target.parentElement;
+      const step = Number(slot.dataset.step);
+      stepEls.forEach(function (el) { el.classList.toggle('active', el === slot); });
+      if (step !== state.step) { state.step = step; render(); }
+    });
+  }
+
+  /* Side by side, a step is active at mid-screen. Stacked, the chart occupies the
+     top half, so the activation band drops to where the card is actually legible. */
+  const stacked = matchMedia('(max-width: 900px)');
+  let io = null;
+  function observeSteps() {
+    if (io) io.disconnect();
+    io = new IntersectionObserver(activate, {
+      rootMargin: stacked.matches ? '-70% 0px -22% 0px' : '-45% 0px -45% 0px',
+      threshold: 0
+    });
+    cardEls.forEach(function (el) { io.observe(el); });
+  }
+  observeSteps();
+  stacked.addEventListener('change', observeSteps);
+  stepEls[0].classList.add('active');
+
+  /* ── read progress: the one thing a scroll listener does better than an
+       observer, since it is a continuous fraction rather than a threshold ── */
+  const progEl = document.getElementById('prog');
+  let ticking = false;
+  function drawProgress() {
+    ticking = false;
+    const doc = document.documentElement;
+    const travel = doc.scrollHeight - doc.clientHeight;
+    const pct = travel > 0 ? Math.min(100, Math.max(0, doc.scrollTop / travel * 100)) : 0;
+    progEl.style.width = pct + '%';
+    progEl.setAttribute('aria-valuenow', Math.round(pct));
+  }
+  function queueProgress() {
+    if (ticking) return;
+    ticking = true;
+    requestAnimationFrame(drawProgress);
+  }
+  addEventListener('scroll', queueProgress, { passive: true });
+  addEventListener('resize', queueProgress);
+
+  /* ── controls write to the same state, then call the same render ── */
+  function live(on) { chartEl.classList.toggle('live', on); }
+
+  document.getElementById('buffer').addEventListener('input', function (e) {
+    live(true); state.buffer = Number(e.target.value); render();
+  });
+  document.getElementById('minOrder').addEventListener('input', function (e) {
+    live(true); state.minOrder = Number(e.target.value); render();
+  });
+  document.querySelectorAll('input[type=range]').forEach(function (el) {
+    el.addEventListener('change', function () { live(false); });
+    el.addEventListener('blur', function () { live(false); });
+  });
+  document.getElementById('cap').addEventListener('change', function (e) {
+    state.cap = e.target.checked; render();
+  });
+
+  const tableBtn = document.getElementById('tableToggle');
+  tableBtn.addEventListener('click', function () {
+    const wrap = document.getElementById('tableWrap');
+    wrap.hidden = !wrap.hidden;
+    tableBtn.classList.toggle('on', !wrap.hidden);
+    tableBtn.setAttribute('aria-pressed', String(!wrap.hidden));
+    render();
+    queueProgress();
+  });
+
+  const themeBtn = document.getElementById('themeToggle');
+  function labelTheme() {
+    themeBtn.textContent = document.documentElement.classList.contains('dark') ? 'Light' : 'Dark';
+  }
+  themeBtn.addEventListener('click', function () {
+    const dark = document.documentElement.classList.toggle('dark');
+    localStorage.setItem('theme', dark ? 'dark' : 'light');
+    labelTheme();
+  });
+  labelTheme();
+
+  buildChart();
+  render();
+  drawProgress();
+})();
+</script>
+</body>
+</html>

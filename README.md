@@ -2,7 +2,7 @@
 
 
 
-https://github.com/user-attachments/assets/24306977-7f30-44c9-9bff-55f901d557b0
+<https://github.com/user-attachments/assets/24306977-7f30-44c9-9bff-55f901d557b0>
 
 _**Note:** The diagram was made by `Fable 5`, I will create more fable 5 artifacts and add them to the skill folder for smaller models to distill._
 [example demo](https://x.com/backnotprop/status/2065479594023829619?s=20)
@@ -12,6 +12,7 @@ One skill for generating self-contained HTML deliverables with a strong visual b
 
 - **Artifact**: an HTML file for whatever you're describing, in the effective HTML style
 - **Diagram**: architecture, stack, and systems understanding rendered as a full-screen HTML diagram with high-quality SVG
+- **Scroll explainer**: a scroll-driven page where each step moves a sticky chart or diagram to a new state, with sliders for the assumptions
 - **Plan**: an HTML plan page in the effective HTML style, kept close to what you wrote
 
 <p align="center">
@@ -75,10 +76,11 @@ Create instant share links for your HTML files (optional): https://github.com/pl
 
 - **Artifact** - an HTML file for whatever the user is describing, matching the effective HTML references.
 - **Diagram** - a full-screen HTML architecture or stack diagram, SVG-first, minimal prose. Also draws on `references/architecture-example.html`.
+- **Scroll explainer** - a scrollytelling page: sticky chart, steps that advance it, plain-English reasoning beside each step, and sliders for any threshold the reader should be able to change. Also draws on `references/scroll-explainer-example.html`.
 - **Plan** - an HTML plan page in the effective HTML style.
 
 ## Repository Shape
 
-The skill lives at `skills/effective-html/SKILL.md` and bundles the `html-effectiveness` example corpus under `references/html-effectiveness/`, so the examples stay local to the skill.
+The skill lives at `skills/effective-html/SKILL.md` and bundles the `html-effectiveness` example corpus under `references/html-effectiveness/`, so the examples stay local to the skill. Two further examples written for this repo sit beside it: `references/architecture-example.html` and `references/scroll-explainer-example.html`.
 
-Credit: this repo bundles and uses the `html-effectiveness` examples by Thariq Shihipar: https://thariqs.github.io/html-effectiveness
+Credit: this repo bundles and uses the `html-effectiveness` examples by Thariq Shihipar: <https://thariqs.github.io/html-effectiveness>
