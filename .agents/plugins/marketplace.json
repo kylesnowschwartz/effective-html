@@ -5,10 +5,10 @@
   },
   "plugins": [
     {
-      "name": "plannotator-effective-html",
+      "name": "effective-html",
       "source": {
         "source": "url",
-        "url": "https://github.com/plannotator/effective-html.git"
+        "url": "https://github.com/kylesnowschwartz/effective-html.git"
       },
       "policy": {
         "installation": "AVAILABLE",

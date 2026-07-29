@@ -1,19 +1,21 @@
 {
   "name": "effective-html",
   "owner": {
-    "name": "plannotator"
+    "name": "kylesnowschwartz",
+    "url": "https://github.com/kylesnowschwartz"
   },
-  "description": "Agent skills for elegant, self-contained HTML plans, diagrams, and artifacts.",
+  "description": "One agent skill for elegant, self-contained HTML artifacts, diagrams, scroll explainers, and plans.",
   "plugins": [
     {
-      "name": "plannotator-effective-html",
+      "name": "effective-html",
       "source": {
         "source": "github",
-        "repo": "plannotator/effective-html"
+        "repo": "kylesnowschwartz/effective-html"
       },
-      "description": "One effective-html skill that routes between artifact, diagram, and plan modes for pragmatic, self-contained HTML.",
-      "homepage": "https://github.com/plannotator/effective-html",
-      "repository": "https://github.com/plannotator/effective-html",
+      "version": "0.3.0",
+      "description": "One effective-html skill that routes between artifact, diagram, scroll-explainer, and plan modes for pragmatic, self-contained HTML.",
+      "homepage": "https://github.com/kylesnowschwartz/effective-html",
+      "repository": "https://github.com/kylesnowschwartz/effective-html",
       "license": "MIT",
       "keywords": ["html", "diagram", "plan", "svg", "artifacts", "skills"],
       "category": "productivity"

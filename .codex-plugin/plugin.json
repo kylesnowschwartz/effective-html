@@ -1,21 +1,21 @@
 {
-  "name": "plannotator-effective-html",
-  "version": "0.2.0",
-  "description": "One effective-html skill that routes between artifact, diagram, and plan modes for pragmatic, self-contained HTML.",
+  "name": "effective-html",
+  "version": "0.3.0",
+  "description": "One effective-html skill that routes between artifact, diagram, scroll-explainer, and plan modes for pragmatic, self-contained HTML.",
   "author": {
-    "name": "plannotator",
-    "url": "https://github.com/plannotator"
+    "name": "kylesnowschwartz",
+    "url": "https://github.com/kylesnowschwartz"
   },
-  "homepage": "https://github.com/plannotator/effective-html",
-  "repository": "https://github.com/plannotator/effective-html",
+  "homepage": "https://github.com/kylesnowschwartz/effective-html",
+  "repository": "https://github.com/kylesnowschwartz/effective-html",
   "license": "MIT",
   "keywords": ["html", "diagram", "plan", "svg", "artifacts", "skills"],
   "skills": "./skills/",
   "interface": {
     "displayName": "Effective HTML",
-    "shortDescription": "Elegant, self-contained HTML plans, diagrams, and artifacts",
-    "longDescription": "Create polished, self-contained HTML artifacts, full-screen architecture diagrams, and pragmatic plan pages from local reference examples.",
-    "developerName": "plannotator",
+    "shortDescription": "Elegant, self-contained HTML artifacts, diagrams, and plans",
+    "longDescription": "Create polished, self-contained HTML artifacts, full-screen architecture diagrams, scroll-driven explainers, and pragmatic plan pages from local reference examples.",
+    "developerName": "kylesnowschwartz",
     "category": "Productivity",
     "capabilities": ["Write"],
     "defaultPrompt": [
