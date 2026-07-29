@@ -159,7 +159,10 @@
   .node:hover rect { stroke: var(--muted); }
   .node.sel rect { stroke: var(--accent) !important; stroke-width: 2; }
   .node .t  { font-family: var(--font-prose); font-size: var(--text-body); font-weight: var(--weight-bold); fill: var(--ink); pointer-events: none; }
-  .node .m  { font-family: var(--font-data); font-size: var(--text-meta-data); fill: var(--muted); pointer-events: none; }
+  /* Node meta stays at micro. It is a glanced label inside a fixed-geometry box,
+     and a step up to --text-meta-data overflows five of these nodes by up to
+     15px — the node grid has no horizontal slack to give. */
+  .node .m  { font-family: var(--font-data); font-size: var(--text-micro); fill: var(--muted); pointer-events: none; }
   .node .k  { font-family: var(--font-data); font-size: var(--text-micro); letter-spacing: var(--track-caps); text-transform: uppercase; fill: var(--accent); pointer-events: none; }
   .node.gate rect { fill: var(--accent-soft); stroke: var(--accent); }
   .node.store rect { fill: var(--wash); }
