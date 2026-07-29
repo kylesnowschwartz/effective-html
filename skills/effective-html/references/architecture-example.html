@@ -12,26 +12,39 @@
   })();
 </script>
 <style>
+  /* Two layers. The reference palette names pigments and never changes between
+     modes; role tokens name jobs and select a pigment per mode. Only the
+     reference layer holds colour literals, so a palette change is one block. */
   :root {
-    --bg: #FAF9F5; --surface: #FFFFFF; --surface2: #F0EEE6;
-    --ink: #141413; --body: #3D3D3A; --muted: #87867F;
-    --line: #D1CFC5; --line-soft: #E6E3DA;
-    --clay: #D97757; --clay-soft: rgba(217,119,87,0.10);
-    --olive: #788C5D; --olive-soft: rgba(120,140,93,0.12);
-    --gold: #C9A45C; --blue: #5B7E96;
-    --zone: rgba(20,20,19,0.025); --zone-line: #D1CFC5;
+    /* reference palette */
+    --ivory: #FAF9F5; --white: #FFFFFF;
+    --gray-150: #F0EEE6; --gray-250: #E6E3DA; --gray-300: #D1CFC5;
+    --gray-500: #87867F; --gray-700: #3D3D3A;
+    --slate: #141413; --slate-900: #1F1F1D; --slate-800: #2A2A28;
+    --clay: #D97757; --clay-on-dark: #E48A6E;
+    --olive: #788C5D; --olive-on-dark: #9DB07C;
+    --gold: #C9A45C; --gold-on-dark: #D4B36F;
+    --blue: #5B7E96; --blue-on-dark: #7FA3BC;
+
+    /* role tokens — light */
+    --bg: var(--ivory); --surface: var(--white); --surface2: var(--gray-150);
+    --ink: var(--slate); --body: var(--gray-700); --muted: var(--gray-500);
+    --line: var(--gray-300); --line-soft: var(--gray-250);
+    --accent: var(--clay); --accent-soft: rgba(217,119,87,0.10);
+    --positive: var(--olive); --positive-soft: rgba(120,140,93,0.12);
+    --zone: rgba(20,20,19,0.025); --zone-line: var(--gray-300);
     --serif: ui-serif, Georgia, "Times New Roman", serif;
     --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
     --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
   }
   html.dark {
-    --bg: #141413; --surface: #1F1F1D; --surface2: #2A2A28;
-    --ink: #FAF9F5; --body: #D1CFC5; --muted: #87867F;
-    --line: #3D3D3A; --line-soft: #2A2A28;
-    --clay: #E48A6E; --clay-soft: rgba(228,138,110,0.14);
-    --olive: #9DB07C; --olive-soft: rgba(157,176,124,0.16);
-    --gold: #D4B36F; --blue: #7FA3BC;
-    --zone: rgba(250,249,245,0.03); --zone-line: #3D3D3A;
+    /* role tokens — dark selects different steps, never inverts */
+    --bg: var(--slate); --surface: var(--slate-900); --surface2: var(--slate-800);
+    --ink: var(--ivory); --body: var(--gray-300); --muted: var(--gray-500);
+    --line: var(--gray-700); --line-soft: var(--slate-800);
+    --accent: var(--clay-on-dark); --accent-soft: rgba(228,138,110,0.14);
+    --positive: var(--olive-on-dark); --positive-soft: rgba(157,176,124,0.16);
+    --zone: rgba(250,249,245,0.03); --zone-line: var(--gray-700);
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   html, body { height: 100%; }
@@ -95,13 +108,13 @@
   .node { cursor: pointer; }
   .node rect { fill: var(--surface); stroke: var(--line); stroke-width: 1.5; rx: 10; transition: stroke .15s ease, filter .15s ease; }
   .node:hover rect { stroke: var(--muted); }
-  .node.sel rect { stroke: var(--clay) !important; stroke-width: 2; }
+  .node.sel rect { stroke: var(--accent) !important; stroke-width: 2; }
   .node .t  { font-family: var(--sans); font-size: 14.5px; font-weight: 600; fill: var(--ink); pointer-events: none; }
   .node .m  { font-family: var(--mono); font-size: 11px; fill: var(--muted); pointer-events: none; }
-  .node .k  { font-family: var(--mono); font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; fill: var(--clay); pointer-events: none; }
-  .node.gate rect { fill: var(--clay-soft); stroke: var(--clay); }
+  .node .k  { font-family: var(--mono); font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; fill: var(--accent); pointer-events: none; }
+  .node.gate rect { fill: var(--accent-soft); stroke: var(--accent); }
   .node.store rect { fill: var(--surface2); }
-  .node.do rect { fill: var(--olive-soft); stroke: var(--olive); }
+  .node.do rect { fill: var(--positive-soft); stroke: var(--positive); }
   .node.ext rect { stroke-dasharray: 6 3; }
 
   /* edges */
@@ -116,17 +129,17 @@
   .stage.flowing .node { opacity: 0.30; }
   .stage.flowing .zone { opacity: 0.45; }
   .stage.flowing .edge.lit {
-    opacity: 1; stroke: var(--clay); marker-end: url(#a-clay);
+    opacity: 1; stroke: var(--accent); marker-end: url(#a-clay);
     stroke-dasharray: 7 5; animation: march 0.9s linear infinite;
   }
-  .stage.flowing .elbl.lit { opacity: 1; fill: var(--clay); }
+  .stage.flowing .elbl.lit { opacity: 1; fill: var(--accent); }
   .stage.flowing .node.lit { opacity: 1; }
-  .stage.flowing .node.lit rect { stroke: var(--clay); }
+  .stage.flowing .node.lit rect { stroke: var(--accent); }
   @keyframes march { to { stroke-dashoffset: -12; } }
   @media (prefers-reduced-motion: reduce) { .stage.flowing .edge.lit { animation: none; } }
 
   .badge { font-family: var(--mono); font-size: 11px; font-weight: 700; }
-  .badge circle { fill: var(--clay); }
+  .badge circle { fill: var(--accent); }
   .badge text { fill: var(--bg); }
   .stage:not(.flowing) .badge { display: none; }
 
@@ -140,7 +153,7 @@
   #detail h3 { font-family: var(--serif); font-weight: 500; font-size: 17px; color: var(--ink); margin-bottom: 2px; }
   #detail .meta { font-family: var(--mono); font-size: 10.5px; color: var(--muted); margin-bottom: 8px; }
   #detail p { font-size: 12.5px; line-height: 1.55; }
-  #detail p code, #flowcap code { font-family: var(--mono); font-size: 11px; color: var(--clay); }
+  #detail p code, #flowcap code { font-family: var(--mono); font-size: 11px; color: var(--accent); }
 
   /* collapse-to-pill — the detail card defaults to a compact pill so it never
      sits over the diagram until you ask for detail by clicking a node. This is
@@ -172,7 +185,7 @@
   #flowcap { left: 16px; bottom: 16px; max-width: 460px; display: none; }
   #flowcap.show { display: block; }
   #flowcap.dismissed { display: none; }
-  #flowcap .fname { font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--clay); margin-bottom: 6px; padding-right: 22px; }
+  #flowcap .fname { font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); margin-bottom: 6px; padding-right: 22px; }
   #flowcap ol { margin-left: 18px; }
   #flowcap li { font-size: 12.5px; line-height: 1.55; }
   .src { position: absolute; top: 10px; right: 16px; font-family: var(--mono); font-size: 10px; color: var(--muted); opacity: 0.8; }
@@ -220,7 +233,7 @@
       <path d="M0,0 L10,5 L0,10 z" style="fill: var(--muted)"/>
     </marker>
     <marker id="a-clay" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
-      <path d="M0,0 L10,5 L0,10 z" style="fill: var(--clay)"/>
+      <path d="M0,0 L10,5 L0,10 z" style="fill: var(--accent)"/>
     </marker>
   </defs>
   <!-- everything pannable lives in one group; its transform is the whole camera -->

@@ -13,28 +13,44 @@
   })();
 </script>
 <style>
+  /* Two layers. The reference palette names pigments and never changes between
+     modes; role tokens name jobs and select a pigment per mode. Only the
+     reference layer holds colour literals, so a palette change is one block. */
   :root {
-    --bg: #FAF9F5; --surface: #FFFFFF; --surface2: #F0EEE6;
-    --ink: #141413; --body: #3D3D3A; --muted: #87867F;
-    --line: #D1CFC5; --line-soft: #E6E3DA;
-    --accent: #D97757; --accent-soft: rgba(217,119,87,0.10);
-    /* categorical slots 1-3, validated colourblind-safe as a set in both modes */
-    --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a;
+    /* reference palette */
+    --ivory: #FAF9F5; --white: #FFFFFF;
+    --gray-150: #F0EEE6; --gray-250: #E6E3DA; --gray-300: #D1CFC5;
+    --gray-450: #9A998F; --gray-500: #87867F; --gray-700: #3D3D3A;
+    --slate: #141413; --slate-900: #1F1F1D; --slate-800: #2A2A28;
+    --clay: #D97757; --clay-on-dark: #E48A6E;
+    /* categorical pigments — the set passes the colourblind-safety checks in
+       both modes; the dark steps are chosen against the dark surface, not flipped */
+    --azure: #2a78d6; --azure-on-dark: #3987e5;
+    --tangerine: #eb6834; --tangerine-on-dark: #d95926;
+    --jade: #1baf7a; --jade-on-dark: #199e70;
+
+    /* role tokens — light */
+    --bg: var(--ivory); --surface: var(--white); --surface2: var(--gray-150);
+    --ink: var(--slate); --body: var(--gray-700); --muted: var(--gray-500);
+    --line: var(--gray-300); --line-soft: var(--gray-250);
+    --accent: var(--clay); --accent-soft: rgba(217,119,87,0.10);
+    --s1: var(--azure); --s2: var(--tangerine); --s3: var(--jade);
     --s1-soft: rgba(42,120,214,0.12);
-    --rule: #87867F;
+    --rule: var(--gray-500);
     --ease: cubic-bezier(0.4, 0, 0.2, 1);
     --serif: ui-serif, Georgia, "Times New Roman", serif;
     --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
     --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
   }
   html.dark {
-    --bg: #141413; --surface: #1F1F1D; --surface2: #2A2A28;
-    --ink: #FAF9F5; --body: #D1CFC5; --muted: #87867F;
-    --line: #3D3D3A; --line-soft: #2A2A28;
-    --accent: #E48A6E; --accent-soft: rgba(228,138,110,0.14);
-    --s1: #3987e5; --s2: #d95926; --s3: #199e70;
+    /* role tokens — dark selects different steps, never inverts */
+    --bg: var(--slate); --surface: var(--slate-900); --surface2: var(--slate-800);
+    --ink: var(--ivory); --body: var(--gray-300); --muted: var(--gray-500);
+    --line: var(--gray-700); --line-soft: var(--slate-800);
+    --accent: var(--clay-on-dark); --accent-soft: rgba(228,138,110,0.14);
+    --s1: var(--azure-on-dark); --s2: var(--tangerine-on-dark); --s3: var(--jade-on-dark);
     --s1-soft: rgba(57,135,229,0.16);
-    --rule: #9A998F;
+    --rule: var(--gray-450);
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   html { scroll-behavior: smooth; }
