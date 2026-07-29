@@ -117,6 +117,11 @@
   --shell-wide: 1320px;
   --w-steps: 320px;
   --w-pane: 840px;
+  --w-card: 344px;
+  --w-card-wide: 464px;
+
+  /* -- elevation ---------------------------------------------------------- */
+  --shadow-card: 0 6px 24px rgba(0, 0, 0, 0.08);
 
   /* -- role: light -------------------------------------------------------- */
   --bg: var(--ivory);
@@ -177,6 +182,7 @@ html.dark {
   --accent-soft: rgba(191, 79, 4, 0.16);
   --positive-soft: rgba(121, 180, 255, 0.14);
   --zone: rgba(250, 249, 245, 0.03);
+  --shadow-card: 0 6px 24px rgba(0, 0, 0, 0.45);
 
   /* Light-on-dark reads heavier than dark-on-light at the same weight, and a
      weight step down is unavailable on two-weight faces. Loosen instead. */

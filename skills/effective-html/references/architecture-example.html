@@ -12,66 +12,115 @@
   })();
 </script>
 <style>
-  /* Two layers. The reference palette names pigments and never changes between
-     modes; role tokens name jobs and select a pigment per mode. Only the
-     reference layer holds colour literals, so a palette change is one block. */
+  /* Two layers. The reference palette names pigments and holds every colour
+     literal; role tokens name jobs and select a pigment per mode. Dark mode
+     selects different steps rather than inverting, so a palette change is one
+     block. This is the house style token block — see house-style-tokens.css. */
   :root {
-    /* reference palette */
-    --ivory: #FAF9F5; --white: #FFFFFF;
-    --gray-150: #F0EEE6; --gray-250: #E6E3DA; --gray-300: #D1CFC5;
-    --gray-500: #87867F; --gray-700: #3D3D3A;
-    --slate: #141413; --slate-900: #1F1F1D; --slate-800: #2A2A28;
-    --clay: #D97757; --clay-on-dark: #E48A6E;
-    --olive: #788C5D; --olive-on-dark: #9DB07C;
-    --gold: #C9A45C; --gold-on-dark: #D4B36F;
-    --blue: #5B7E96; --blue-on-dark: #7FA3BC;
+    /* reference: neutrals */
+    --ivory: #FAF9F5; --white: #FFFFFF; --wash-l: #F0EEE6;
+    --oat: #E3DACC; --line-l: #D1CFC5; --line-strong-l: #BBB7AC;
+    --gray-500: #87867F; --gray-600: #605F58; --gray-700: #3D3D3A;
+    --slate: #141413; --slate-900: #1E1D1A; --slate-800: #282721;
+    --slate-700: #333229; --slate-600: #3E3D38; --slate-500: #51504A;
+    --gray-350: #B4B3AB; --gray-250: #CECDC5; --paper: #F2F0EA;
 
-    /* role tokens — light */
-    --bg: var(--ivory); --surface: var(--white); --surface2: var(--gray-150);
-    --ink: var(--slate); --body: var(--gray-700); --muted: var(--gray-500);
-    --line: var(--gray-300); --line-soft: var(--gray-250);
-    --accent: var(--clay); --accent-soft: rgba(217,119,87,0.10);
-    --positive: var(--olive); --positive-soft: rgba(120,140,93,0.12);
-    --zone: rgba(20,20,19,0.025); --zone-line: var(--gray-300);
-    --serif: ui-serif, Georgia, "Times New Roman", serif;
-    --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-    --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    /* reference: five series hues, one step per mode */
+    --clay: #994210; --clay-on-dark: #bf4f04;
+    --indigo: #5168b9; --indigo-on-dark: #5c77df;
+    --teal: #00a1a2; --teal-on-dark: #009ea0;
+    --ochre: #8d7f00; --ochre-on-dark: #a79700;
+    --plum: #733378; --plum-on-dark: #98449e;
+
+    /* reference: status. Dark carries a separate mark step because the
+       categorical lightness band governs marks, not text. */
+    --red: #971a20; --red-text-on-dark: #f87b5c; --red-mark-on-dark: #ca3403;
+    --amber: #896a00; --amber-text-on-dark: #f6c330; --amber-mark-on-dark: #b78d00;
+    --blue: #2757b6; --blue-text-on-dark: #79b4ff; --blue-mark-on-dark: #026cd1;
+
+    /* reference: families. ui-serif and ui-monospace resolve only in Safari;
+       the named faces do the real work, and Liberation/DejaVu are Linux. */
+    --font-prose: system-ui, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --font-display: ui-serif, Georgia, "Liberation Serif", "Noto Serif",
+                    "DejaVu Serif", "Times New Roman", serif;
+    --font-data: ui-monospace, Menlo, Consolas, "Liberation Mono",
+                 "DejaVu Sans Mono", monospace;
+
+    /* type: nine steps, named by job */
+    --text-micro: 0.6875rem; --text-meta: 0.8125rem; --text-body: 1rem;
+    --text-lead: 1.125rem; --text-h4: 1.3125rem; --text-h3: 1.5rem;
+    --text-h2: 1.875rem; --text-h1: 2.375rem; --text-display: 3.25rem;
+    --text-body-display: 1.125rem; --text-meta-data: 0.75rem;
+
+    /* weight: two values. 500 is a no-op and 600 is full bold on the serif
+       and mono faces, so emphasis changes family or size instead. */
+    --weight-normal: 400; --weight-bold: 700;
+
+    --leading-tight: 1.15; --leading-snug: 1.35;
+    --leading-normal: 1.55; --leading-loose: 1.7;
+    --track-caps: 0.08em; --track-micro: 0.04em; --track-display: -0.02em;
+
+    /* space: twelve rungs on a 4pt grid */
+    --sp-0: 0px; --sp-2: 2px; --sp-4: 4px; --sp-8: 8px;
+    --sp-12: 12px; --sp-16: 16px; --sp-20: 20px; --sp-24: 24px;
+    --sp-32: 32px; --sp-48: 48px; --sp-64: 64px; --sp-96: 96px;
+
+    --r-4: 4px; --r-8: 8px; --r-12: 12px; --r-full: 999px;
+
+    --w-rail: 278px; --w-card: 344px; --w-card-wide: 464px;
+    --w-measure: 540px;
+    --shadow-card: 0 6px 24px rgba(0, 0, 0, 0.08);
+
+    /* role: light */
+    --bg: var(--ivory); --surface: var(--white); --wash: var(--wash-l);
+    --line: var(--line-l); --line-strong: var(--line-strong-l);
+    --ink: var(--slate); --body: var(--gray-700); --muted: var(--gray-600);
+    --fill: var(--gray-500);
+    --accent: var(--clay); --accent-soft: rgba(153, 66, 16, 0.10);
+    --positive: var(--blue); --positive-soft: rgba(39, 87, 182, 0.10);
+    --zone: rgba(20, 20, 19, 0.025);
   }
   html.dark {
-    /* role tokens — dark selects different steps, never inverts */
-    --bg: var(--slate); --surface: var(--slate-900); --surface2: var(--slate-800);
-    --ink: var(--ivory); --body: var(--gray-300); --muted: var(--gray-500);
-    --line: var(--gray-700); --line-soft: var(--slate-800);
-    --accent: var(--clay-on-dark); --accent-soft: rgba(228,138,110,0.14);
-    --positive: var(--olive-on-dark); --positive-soft: rgba(157,176,124,0.16);
-    --zone: rgba(250,249,245,0.03); --zone-line: var(--gray-700);
+    /* role: dark selects different steps, never inverts */
+    --bg: var(--slate); --surface: var(--slate-900); --wash: var(--slate-800);
+    --line: var(--slate-600); --line-strong: var(--slate-500);
+    --ink: var(--paper); --body: var(--gray-250); --muted: var(--gray-350);
+    --fill: var(--gray-500);
+    --accent: var(--clay-on-dark); --accent-soft: rgba(191, 79, 4, 0.16);
+    --positive: var(--blue-text-on-dark); --positive-soft: rgba(121, 180, 255, 0.14);
+    --zone: rgba(250, 249, 245, 0.03);
+    --shadow-card: 0 6px 24px rgba(0, 0, 0, 0.45);
+    /* Light-on-dark reads heavier at the same weight, and a weight step down is
+       unavailable on two-weight faces, so loosen leading instead. */
+    --leading-normal: 1.65;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   html, body { height: 100%; }
+  html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
   body {
-    background: var(--bg); color: var(--body); font-family: var(--sans);
-    -webkit-font-smoothing: antialiased; display: flex; flex-direction: column; overflow: hidden;
+    background: var(--bg); color: var(--body); font-family: var(--font-prose);
+    display: flex; flex-direction: column; overflow: hidden;
   }
 
   /* ── top bar ─────────────────────────────── */
   .bar {
-    display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
-    padding: 12px 20px; border-bottom: 1px solid var(--line-soft); flex: none;
+    display: flex; align-items: center; gap: var(--sp-16); flex-wrap: wrap;
+    padding: var(--sp-12) var(--sp-20); border-bottom: 1px solid var(--line); flex: none;
   }
-  .bar h1 { font-family: var(--serif); font-weight: 500; font-size: 19px; color: var(--ink); letter-spacing: -0.01em; }
-  .bar .sub { font-family: var(--mono); font-size: 10.5px; color: var(--muted); letter-spacing: 0.06em; text-transform: uppercase; }
+  .bar h1 { font-family: var(--font-display); font-weight: var(--weight-normal); font-size: var(--text-h4); color: var(--ink); letter-spacing: -0.01em; }
+  .bar .sub { font-family: var(--font-data); font-size: var(--text-micro); color: var(--muted); letter-spacing: var(--track-caps); text-transform: uppercase; }
   .spacer { flex: 1; }
-  .chips { display: flex; gap: 6px; flex-wrap: wrap; }
+  .chips { display: flex; gap: var(--sp-8); flex-wrap: wrap; }
   .chip {
-    font-family: var(--mono); font-size: 11px; letter-spacing: 0.04em;
-    padding: 5px 11px; border: 1px solid var(--line); border-radius: 999px;
+    font-family: var(--font-data); font-size: var(--text-meta-data); letter-spacing: var(--track-micro);
+    padding: var(--sp-8) var(--sp-12); min-height: var(--sp-24); border: 1px solid var(--line); border-radius: var(--r-full);
     background: transparent; color: var(--muted); cursor: pointer; transition: all .15s ease;
   }
   .chip:hover { color: var(--ink); border-color: var(--muted); }
   .chip.on { background: var(--ink); border-color: var(--ink); color: var(--bg); }
   #themeToggle {
-    font-family: var(--mono); font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.08em;
-    padding: 5px 10px; border: 1px solid var(--line); border-radius: 6px;
+    font-family: var(--font-data); font-size: var(--text-meta-data); text-transform: uppercase; letter-spacing: var(--track-caps);
+    padding: var(--sp-8) var(--sp-12); min-height: var(--sp-24); border: 1px solid var(--line); border-radius: var(--r-8);
     background: transparent; color: var(--muted); cursor: pointer;
   }
   #themeToggle:hover { color: var(--ink); border-color: var(--muted); }
@@ -89,31 +138,31 @@
   .stage.pz.settling #svg-content { transition: transform .28s ease; }
   @media (prefers-reduced-motion: reduce) { .stage.pz.settling #svg-content { transition: none; } }
 
-  .zoomctl { display: none; align-items: center; gap: 2px; }
+  .zoomctl { display: none; align-items: center; gap: var(--sp-2); }
   .zoomctl.on { display: flex; }
   .zoomctl button {
-    font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.08em;
-    padding: 5px 9px; border: 1px solid var(--line); border-radius: 6px;
+    font-family: var(--font-data); font-size: var(--text-meta-data); letter-spacing: var(--track-caps);
+    padding: var(--sp-8) var(--sp-8); min-height: var(--sp-24); border: 1px solid var(--line); border-radius: var(--r-8);
     background: transparent; color: var(--muted); cursor: pointer;
   }
   .zoomctl button:hover { color: var(--ink); border-color: var(--muted); }
-  .zoomctl #zoomLevel { min-width: 46px; text-align: center; font-variant-numeric: tabular-nums; }
+  .zoomctl #zoomLevel { min-width: var(--sp-48); text-align: center; font-variant-numeric: tabular-nums; }
 
   /* zones */
-  .zone rect { fill: var(--zone); stroke: var(--zone-line); stroke-width: 1; stroke-dasharray: 5 5; rx: 16; }
-  .zone .ztitle { font-family: var(--mono); font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase; fill: var(--muted); }
-  .zone .zsub { font-family: var(--mono); font-size: 10.5px; fill: var(--muted); opacity: 0.75; }
+  .zone rect { fill: var(--zone); stroke: var(--line); stroke-width: 1; stroke-dasharray: 5 5; rx: 12; }
+  .zone .ztitle { font-family: var(--font-data); font-size: var(--text-meta-data); letter-spacing: var(--track-caps); text-transform: uppercase; fill: var(--muted); }
+  .zone .zsub { font-family: var(--font-data); font-size: var(--text-micro); fill: var(--muted); opacity: 0.75; }
 
   /* nodes */
   .node { cursor: pointer; }
-  .node rect { fill: var(--surface); stroke: var(--line); stroke-width: 1.5; rx: 10; transition: stroke .15s ease, filter .15s ease; }
+  .node rect { fill: var(--surface); stroke: var(--line); stroke-width: 1.5; rx: 8; transition: stroke .15s ease, filter .15s ease; }
   .node:hover rect { stroke: var(--muted); }
   .node.sel rect { stroke: var(--accent) !important; stroke-width: 2; }
-  .node .t  { font-family: var(--sans); font-size: 14.5px; font-weight: 600; fill: var(--ink); pointer-events: none; }
-  .node .m  { font-family: var(--mono); font-size: 11px; fill: var(--muted); pointer-events: none; }
-  .node .k  { font-family: var(--mono); font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; fill: var(--accent); pointer-events: none; }
+  .node .t  { font-family: var(--font-prose); font-size: var(--text-body); font-weight: var(--weight-bold); fill: var(--ink); pointer-events: none; }
+  .node .m  { font-family: var(--font-data); font-size: var(--text-meta-data); fill: var(--muted); pointer-events: none; }
+  .node .k  { font-family: var(--font-data); font-size: var(--text-micro); letter-spacing: var(--track-caps); text-transform: uppercase; fill: var(--accent); pointer-events: none; }
   .node.gate rect { fill: var(--accent-soft); stroke: var(--accent); }
-  .node.store rect { fill: var(--surface2); }
+  .node.store rect { fill: var(--wash); }
   .node.do rect { fill: var(--positive-soft); stroke: var(--positive); }
   .node.ext rect { stroke-dasharray: 6 3; }
 
@@ -121,7 +170,7 @@
   .edge { stroke: var(--muted); stroke-width: 1.6; fill: none; marker-end: url(#a-mut); transition: opacity .2s ease, stroke .2s ease; }
   .edge.dash { stroke-dasharray: 5 4; }
   .edge.ws { stroke-width: 2; }
-  .elbl { font-family: var(--mono); font-size: 10.5px; fill: var(--muted); transition: opacity .2s ease; }
+  .elbl { font-family: var(--font-data); font-size: var(--text-micro); fill: var(--muted); transition: opacity .2s ease; }
 
   /* flow highlighting */
   .stage.flowing .edge { opacity: 0.13; }
@@ -138,42 +187,42 @@
   @keyframes march { to { stroke-dashoffset: -12; } }
   @media (prefers-reduced-motion: reduce) { .stage.flowing .edge.lit { animation: none; } }
 
-  .badge { font-family: var(--mono); font-size: 11px; font-weight: 700; }
+  .badge { font-family: var(--font-data); font-size: var(--text-micro); font-weight: var(--weight-bold); }
   .badge circle { fill: var(--accent); }
   .badge text { fill: var(--bg); }
   .stage:not(.flowing) .badge { display: none; }
 
   /* ── floating cards ──────────────────────── */
   .card {
-    position: absolute; max-width: 360px;
-    background: var(--surface); border: 1px solid var(--line); border-radius: 12px;
-    padding: 14px 16px; box-shadow: 0 6px 24px rgba(0,0,0,0.08);
+    position: absolute; max-width: var(--w-card);
+    background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-12);
+    padding: var(--sp-16) var(--sp-16); box-shadow: var(--shadow-card);
   }
-  #detail { right: 16px; bottom: 16px; width: 340px; }
-  #detail h3 { font-family: var(--serif); font-weight: 500; font-size: 17px; color: var(--ink); margin-bottom: 2px; }
-  #detail .meta { font-family: var(--mono); font-size: 10.5px; color: var(--muted); margin-bottom: 8px; }
-  #detail p { font-size: 12.5px; line-height: 1.55; }
-  #detail p code, #flowcap code { font-family: var(--mono); font-size: 11px; color: var(--accent); }
+  #detail { right: var(--sp-16); bottom: var(--sp-16); width: var(--w-card); }
+  #detail h3 { font-family: var(--font-display); font-weight: var(--weight-normal); font-size: var(--text-lead); color: var(--ink); margin-bottom: var(--sp-2); }
+  #detail .meta { font-family: var(--font-data); font-size: var(--text-micro); color: var(--muted); margin-bottom: var(--sp-8); }
+  #detail p { font-size: var(--text-body); line-height: var(--leading-normal); }
+  #detail p code, #flowcap code { font-family: var(--font-data); font-size: var(--text-meta-data); color: var(--accent); }
 
   /* collapse-to-pill — the detail card defaults to a compact pill so it never
      sits over the diagram until you ask for detail by clicking a node. This is
      the root fix for floating cards obscuring content: reserve nothing, show
      the card only on demand, and give one control to tuck it away again. */
   .card-min {
-    position: absolute; top: 10px; right: 12px; width: 22px; height: 22px;
-    display: grid; place-items: center; padding: 0;
-    border: 1px solid var(--line); border-radius: 6px; background: var(--surface);
-    color: var(--muted); font-family: var(--mono); font-size: 13px; line-height: 1; cursor: pointer;
+    position: absolute; top: var(--sp-12); right: var(--sp-12); width: var(--sp-24); height: var(--sp-24);
+    display: grid; place-items: center; padding: var(--sp-0);
+    border: 1px solid var(--line); border-radius: var(--r-8); background: var(--surface);
+    color: var(--muted); font-family: var(--font-data); font-size: var(--text-meta); line-height: 1; cursor: pointer;
   }
   .card-min:hover { color: var(--ink); border-color: var(--muted); }
-  #detail .card-inner { padding-right: 18px; }
+  #detail .card-inner { padding-right: var(--sp-20); }
   .card-pill { display: none; }
-  #detail.collapsed { width: auto; max-width: 300px; padding: 0; cursor: pointer; }
+  #detail.collapsed { width: auto; max-width: var(--w-rail); padding: var(--sp-0); cursor: pointer; }
   #detail.collapsed .card-inner, #detail.collapsed .card-min { display: none; }
   #detail.collapsed .card-pill {
-    display: flex; align-items: center; gap: 9px; width: 100%; padding: 9px 14px;
+    display: flex; align-items: center; gap: var(--sp-8); width: 100%; padding: var(--sp-12) var(--sp-16);
     border: 0; background: none; text-align: left; cursor: pointer;
-    font-family: var(--mono); font-size: 11px; letter-spacing: 0.03em; color: var(--muted);
+    font-family: var(--font-data); font-size: var(--text-meta-data); letter-spacing: var(--track-micro); color: var(--muted);
   }
   #detail.collapsed:hover .card-pill { color: var(--ink); }
   .card-pill .chev {
@@ -182,22 +231,52 @@
     border-bottom: 5px solid currentColor;
   }
 
-  #flowcap { left: 16px; bottom: 16px; max-width: 460px; display: none; }
+  #flowcap { left: var(--sp-16); bottom: var(--sp-16); max-width: var(--w-card-wide); display: none; }
   #flowcap.show { display: block; }
   #flowcap.dismissed { display: none; }
-  #flowcap .fname { font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); margin-bottom: 6px; padding-right: 22px; }
-  #flowcap ol { margin-left: 18px; }
-  #flowcap li { font-size: 12.5px; line-height: 1.55; }
-  .src { position: absolute; top: 10px; right: 16px; font-family: var(--mono); font-size: 10px; color: var(--muted); opacity: 0.8; }
+  #flowcap .fname { font-family: var(--font-data); font-size: var(--text-micro); letter-spacing: var(--track-caps); text-transform: uppercase; color: var(--accent); margin-bottom: var(--sp-8); padding-right: var(--sp-24); }
+  #flowcap ol { margin-left: var(--sp-20); }
+  #flowcap li { font-size: var(--text-body); line-height: var(--leading-normal); }
+  .src { position: absolute; top: var(--sp-12); right: var(--sp-16); font-family: var(--font-data); font-size: var(--text-micro); color: var(--muted); opacity: 0.8; }
   @media (max-width: 880px) {
     body { overflow: auto; }
     .stage { min-height: 70vh; }
-    #detail, #detail.collapsed { position: static; width: auto; max-width: none; margin: 10px 16px; padding: 14px 16px; cursor: default; }
+    #detail, #detail.collapsed { position: static; width: auto; max-width: none; margin: var(--sp-12) var(--sp-16); padding: var(--sp-16) var(--sp-16); cursor: default; }
     #detail.collapsed .card-inner { display: block; padding-right: 0; }
     #detail .card-inner { padding-right: 0; }
     #detail .card-min, #detail.collapsed .card-min, #detail.collapsed .card-pill { display: none; }
-    #flowcap { position: static; margin: 0 16px 16px; }
+    #flowcap { position: static; margin: var(--sp-0) var(--sp-16) var(--sp-16); }
     #flowcap .card-min { display: none; }
+  }
+
+  /* prefers-color-scheme is not suppressed for print, so without this reset a
+     reader whose OS is dark exports a black page. The diagram also has to stop
+     being a viewport onto itself and lay out at its full height. */
+  @media print {
+    :root, html.dark {
+      color-scheme: light;
+      --bg: var(--ivory); --surface: var(--white); --wash: var(--wash-l);
+      --line: var(--line-l); --line-strong: var(--line-strong-l);
+      --ink: var(--slate); --body: var(--gray-700); --muted: var(--gray-600);
+      --accent: var(--clay); --accent-soft: rgba(153, 66, 16, 0.10);
+      --positive: var(--blue); --positive-soft: rgba(39, 87, 182, 0.10);
+      --zone: rgba(20, 20, 19, 0.025);
+      --shadow-card: none;
+      --leading-normal: 1.45;
+    }
+    html, body { height: auto; overflow: visible; }
+    body { background: var(--bg); color: var(--body); -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .stage { min-height: 0; }
+    .stage svg { position: static; height: auto; aspect-ratio: 1440 / 890; }
+    .chips, .zoomctl, #themeToggle, .card-min { display: none; }
+    #detail, #detail.collapsed, #flowcap {
+      position: static; width: auto; max-width: none;
+      margin: var(--sp-16) var(--sp-0) var(--sp-0); box-shadow: none;
+    }
+    #detail.collapsed .card-inner { display: block; padding-right: var(--sp-0); }
+    #detail.collapsed .card-pill { display: none; }
+    #flowcap { display: block; }
+    .card { break-inside: avoid; }
   }
 </style>
 </head>
