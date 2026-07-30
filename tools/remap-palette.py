@@ -61,6 +61,10 @@ PROPERTY_CLASS = {
     "text-decoration-color": "text",
     "stop-color": "mark",
     "flood-color": "mark",
+    # A shadow and an underline are non-text objects that carry a colour.
+    "box-shadow": "mark",
+    "text-shadow": "mark",
+    "text-decoration": "text",
 }
 
 # (legacy pigment, job) -> role token. Roles are mode-aware, so writing the role
@@ -75,6 +79,7 @@ ROLE_MAP: dict[tuple[str, str], str] = {
     # on a coloured badge stays light in both modes, and an always-dark code
     # panel stays dark, so these keep a reference pigment and do not flip.
     ("--ivory", "text"): "--ivory",
+    ("--ivory", "edge"): "--surface",
     ("--ivory", "surface"): "--bg",
     ("--ivory", "mark"): "--bg",
     ("--white", "text"): "--white",
@@ -82,17 +87,23 @@ ROLE_MAP: dict[tuple[str, str], str] = {
     ("--white", "edge"): "--surface",
     ("--white", "mark"): "--surface",
     ("--slate", "text"): "--ink",
-    ("--slate", "surface"): "--slate",
+    ("--slate", "surface"): "--panel",
+    # A near-black border on a light card is a selected or focused outline, and
+    # --ink flips the way that outline should: dark on light, light on dark.
+    ("--slate", "edge"): "--ink",
     ("--slate", "mark"): "--ink",
+    # These pale pigments are only ever text when they sit on something dark, so
+    # they keep a fixed value instead of following the mode.
+    ("--oat", "text"): "--oat",
     ("--oat", "surface"): "--oat",
     ("--oat", "edge"): "--line",
     ("--oat", "mark"): "--oat",
     ("--gray-700", "text"): "--body",
-    ("--gray-700", "surface"): "--gray-700",
+    ("--gray-700", "surface"): "--panel-raised",
     ("--gray-700", "edge"): "--line-strong",
     ("--gray-700", "mark"): "--body",
     ("--gray-800", "text"): "--body",
-    ("--gray-800", "surface"): "--gray-700",
+    ("--gray-800", "surface"): "--panel-raised",
     ("--gray-800", "edge"): "--line-strong",
     ("--gray-800", "mark"): "--body",
     # The 3.47:1 failure and the legitimate border use, told apart by property.
@@ -100,18 +111,23 @@ ROLE_MAP: dict[tuple[str, str], str] = {
     ("--gray-500", "surface"): "--fill",
     ("--gray-500", "edge"): "--fill",
     ("--gray-500", "mark"): "--fill",
+    ("--gray-300", "text"): "--panel-body",
     ("--gray-300", "surface"): "--wash",
     ("--gray-300", "edge"): "--line",
     ("--gray-300", "mark"): "--line",
+    ("--gray-200", "text"): "--panel-body",
     ("--gray-200", "surface"): "--wash",
     ("--gray-200", "edge"): "--line",
     ("--gray-200", "mark"): "--line",
+    ("--gray-150", "text"): "--panel-ink",
     ("--gray-150", "surface"): "--wash",
     ("--gray-150", "edge"): "--line",
     ("--gray-150", "mark"): "--wash",
+    ("--gray-100", "text"): "--panel-ink",
     ("--gray-100", "surface"): "--wash",
     ("--gray-100", "edge"): "--line",
     ("--gray-100", "mark"): "--wash",
+    ("--gray-50", "text"): "--panel-ink",
     ("--gray-50", "surface"): "--wash",
     ("--gray-50", "edge"): "--line",
     ("--gray-50", "mark"): "--wash",
@@ -130,10 +146,35 @@ ROLE_MAP: dict[tuple[str, str], str] = {
     ("--olive", "text"): "--positive",
     ("--olive", "surface"): "--positive",
     ("--olive", "edge"): "--positive",
+    # A flow arrow painted for pass or fail is status, not a chart series, and a
+    # stroke is a non-text object, so it takes the mark step.
+    ("--olive", "mark"): "--positive-mark",
     ("--rust", "text"): "--critical",
     ("--rust", "surface"): "--critical",
     ("--rust", "edge"): "--critical",
+    ("--rust", "mark"): "--critical-mark",
+    ("--clay-d", "mark"): "--accent-mark",
 }
+
+# A changed pigment written as a tint becomes the role's tinted-surface step, by
+# property: a fill takes -soft and a border takes -line. Both are opaque steps, so
+# what they measure no longer depends on whatever sits behind them.
+TINT_ROLE = {
+    (217, 119, 87): "accent",
+    (184, 92, 62): "accent",
+    (120, 140, 93): "positive",
+    (176, 74, 63): "critical",
+    (176, 74, 74): "critical",
+    (199, 142, 63): "warning",
+    (92, 124, 163): "positive",
+}
+# An underline or decoration drawn in a tinted role reads as a border, not a fill.
+TINT_SUFFIX = {"surface": "soft", "edge": "line", "mark": "soft", "text": "line"}
+# Neutral tints have a token each; the second is for a row band inside a panel
+# that stays dark in both modes, where --zone would invert.
+NEUTRAL_TINT = {(20, 20, 19): "--zone", (255, 255, 255): "--panel-zone",
+                (250, 249, 245): "--panel-zone", (0, 0, 0): "--scrim",
+                (227, 218, 204): "--wash"}
 
 # Legacy names that are not pigments. Values, not roles, so the file's own CSS
 # keeps resolving without a second pass.
@@ -163,10 +204,31 @@ RE_SVG_PAINT = re.compile(r"\b(fill|stroke|stop-color|flood-color)=\"(#[0-9a-fA-
 # Reference pigments dark enough that text on them has to stay light. A rule
 # painting one of these is an island: it holds its colour in both modes, so a
 # role token used for text inside it flips underneath and the contrast inverts.
-DARK_SURFACES = {"--slate", "--gray-700", "--slate-900", "--slate-800"}
-# Roles that resolve dark in light mode, which is unreadable on an island.
-FLIPPING_TEXT_ROLES = {"--ink", "--body", "--muted", "--fill"}
+DARK_SURFACES = {"--panel", "--panel-raised", "--slate", "--gray-700"}
+# The mode-aware role, and the fixed-colour one that replaces it on a panel.
+PANEL_TEXT = {
+    "--ink": "--panel-ink",
+    "--body": "--panel-body",
+    "--muted": "--panel-muted",
+    "--fill": "--panel-muted",
+}
 RE_RULE = re.compile(r"([^{}]+)\{([^{}]*)\}")
+
+# Tokens a one-off pigment may snap to, per job. The corpus holds 24 pale
+# variations that appear once or twice each — hand-picked shades of the old
+# palette — and enumerating them by value would be a table nobody can check.
+# Snapping to the nearest listed token instead keeps the choice inside the closed
+# set, and every snap is reported so the diff can be read.
+SNAP_CANDIDATES = {
+    "text": ("--ink", "--body", "--muted", "--panel-ink", "--panel-body",
+             "--panel-muted", "--critical", "--warning", "--positive", "--accent"),
+    "surface": ("--bg", "--surface", "--wash", "--oat", "--panel", "--panel-raised",
+                "--critical-soft", "--warning-soft", "--positive-soft", "--accent-soft"),
+    "edge": ("--line", "--line-strong", "--fill", "--critical-line", "--warning-line",
+             "--positive-line", "--accent-line"),
+    "mark": ("--s1", "--s2", "--s3", "--s4", "--s5", "--fill", "--critical-mark",
+             "--warning-mark", "--positive-mark", "--accent-mark"),
+}
 
 RE_INLINE_STYLE = re.compile(r'(style=")([^"]*#[0-9a-fA-F]{3,8}[^"]*)"')
 RE_RGBA = re.compile(r"rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)[^)]*\)")
@@ -188,6 +250,8 @@ CHANGED_PIGMENT_RGB = {
 }
 
 LEGACY_PIGMENTS = {token for token, _ in ROLE_MAP}
+BEGIN_MARKER = "/* @house-style-tokens:begin"
+END_MARKER = "/* @house-style-tokens:end */"
 
 # The same pigments written as literals rather than as var(). A file's own hex is
 # what breaks its dark mode: `background: #fff` stays white while the text on it
@@ -248,6 +312,103 @@ def line_of(text: str, index: int) -> int:
     return text.count("\n", 0, index) + 1
 
 
+def to_oklab(rgb: tuple[int, int, int]) -> tuple[float, float, float]:
+    """OKLab, so "nearest colour" means nearest to the eye rather than in sRGB."""
+    r, g, b = (
+        c / 12.92 if (c := v / 255) <= 0.04045 else ((c + 0.055) / 1.055) ** 2.4
+        for v in rgb
+    )
+    lms = (
+        0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b,
+        0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b,
+        0.0883024619 * r + 0.2817188376 * g + 0.6299787005 * b,
+    )
+    l_, m_, s_ = (v ** (1 / 3) for v in lms)
+    return (
+        0.2104542553 * l_ + 0.7936177850 * m_ - 0.0040720468 * s_,
+        1.9779984951 * l_ - 2.4285922050 * m_ + 0.4505937099 * s_,
+        0.0259040371 * l_ + 0.7827717662 * m_ - 0.8086757660 * s_,
+    )
+
+
+def parse_hex(value: str) -> tuple[int, int, int] | None:
+    digits = value.lstrip("#")
+    if len(digits) in (3, 4):
+        digits = "".join(c * 2 for c in digits[:3])
+    if len(digits) not in (6, 8):
+        return None
+    try:
+        return tuple(int(digits[i : i + 2], 16) for i in (0, 2, 4))  # type: ignore[return-value]
+    except ValueError:
+        return None
+
+
+_SNAP_TABLE: dict[str, tuple[str, tuple[int, int, int]]] | None = None
+
+
+def snap_table() -> dict[str, tuple[str, tuple[int, int, int]]]:
+    """Each snap candidate resolved to a light-mode literal, read from the block."""
+    global _SNAP_TABLE
+    if _SNAP_TABLE is not None:
+        return _SNAP_TABLE
+    css = re.sub(r"/\*.*?\*/", "", TOKENS.read_text(encoding="utf-8"), flags=re.DOTALL)
+    root = css[css.index(":root") : css.index("html.dark")]
+    declared = dict(re.findall(r"(--[a-z0-9-]+)\s*:\s*([^;]+)", root))
+
+    def literal(name: str, seen: frozenset[str] = frozenset()) -> str | None:
+        if name in seen or name not in declared:
+            return None
+        value = declared[name].strip()
+        ref = RE_ONE_VAR.search(value)
+        return literal(ref.group(1), seen | {name}) if ref else value
+
+    table: dict[str, tuple[str, tuple[int, int, int]]] = {}
+    for names in SNAP_CANDIDATES.values():
+        for name in names:
+            value = literal(name)
+            rgb = parse_hex(value) if value else None
+            if rgb:
+                table[name] = (value, rgb)
+    _SNAP_TABLE = table
+    return table
+
+
+# Past this OKLab distance the nearest token is a different colour, not the same
+# one written by hand. The corpus's one-off pales sit at a median of 3.4; what
+# lands beyond the ceiling is a swatch or a semantic fill that needs a person.
+SNAP_CEILING = 10.0
+
+
+def snap(literal: str, job: str | None) -> tuple[str, float] | None:
+    """The nearest token for this job, with the OKLab distance it snapped across."""
+    rgb = parse_hex(literal)
+    if rgb is None or job is None:
+        return None
+    table = snap_table()
+    target = to_oklab(rgb)
+    best: tuple[str, float] | None = None
+    for name in SNAP_CANDIDATES.get(job, ()):
+        entry = table.get(name)
+        if entry is None:
+            continue
+        candidate = to_oklab(entry[1])
+        distance = sum((target[i] - candidate[i]) ** 2 for i in range(3)) ** 0.5 * 100
+        if best is None or distance < best[1]:
+            best = (name, distance)
+    return best if best and best[1] <= SNAP_CEILING else None
+
+
+def in_comment(css: str, index: int) -> bool:
+    """True when this offset sits inside a CSS comment.
+
+    Comments hold prose about the CSS, and this file's own token block explains
+    which pigment a role selects, so a hex or a property name written in one is
+    not a declaration to rewrite.
+    """
+    opened = css.rfind("/*", 0, index)
+    return opened != -1 and css.rfind("*/", 0, index) < opened
+
+
 def role_for(token: str, job: str | None) -> str | None:
     """The role token that replaces a legacy pigment doing this job."""
     return None if job is None else ROLE_MAP.get((token, job))
@@ -261,7 +422,7 @@ def remap_hex(css: str, offset: int, text: str) -> tuple[str, list[Skipped], int
     def replace_decl(match: re.Match[str]) -> str:
         nonlocal changed
         prop = match.group("prop")
-        if prop.startswith("--"):
+        if prop.startswith("--") or in_comment(css, match.start()):
             return match.group(0)  # the reference layer, which is where literals belong
         job = PROPERTY_CLASS.get(prop)
         line = line_of(text, offset + match.start())
@@ -271,9 +432,16 @@ def remap_hex(css: str, offset: int, text: str) -> tuple[str, list[Skipped], int
             literal = ref.group(0)
             token = HEX_TO_LEGACY.get(literal.lower())
             if token is None:
-                skipped.append(Skipped(line, "unknown-pigment",
-                                       f"{prop}: {literal} — not a palette pigment"))
-                return literal
+                nearest = snap(literal, job)
+                if nearest is None:
+                    skipped.append(Skipped(line, "unknown-pigment",
+                                           f"{prop}: {literal} — not a palette pigment"))
+                    return literal
+                changed += 1
+                skipped.append(Skipped(line, "snapped",
+                                       f"{prop}: {literal} -> var({nearest[0]}), "
+                                       f"OKLab {nearest[1]:.1f} away"))
+                return f"var({nearest[0]})"
             role = role_for(token, job)
             if role is None:
                 skipped.append(Skipped(line, "needs-judgement",
@@ -298,7 +466,7 @@ def remap_declarations(css: str, offset: int, text: str) -> tuple[str, list[Skip
         nonlocal changed
         prop = match.group("prop")
         value = match.group("value")
-        if prop.startswith("--"):
+        if prop.startswith("--") or in_comment(css, match.start()):
             return match.group(0)  # a custom property's own value, handled by the alias tail
         job = PROPERTY_CLASS.get(prop)
 
@@ -341,13 +509,21 @@ def declared_root_tokens(block: str) -> dict[str, str]:
 def remap(path: Path) -> tuple[str, list[Skipped], int]:
     text = path.read_text(encoding="utf-8")
 
-    root = RE_ROOT.search(text)
-    if not root:
-        raise SystemExit(f"{path}: no :root block to replace")
-    indent = root.group("indent")
-    declared = declared_root_tokens(root.group(0))
-    replacement = canonical_block(indent) + "\n\n" + alias_block(declared, indent)
-    text = text[: root.start()] + replacement + text[root.end() :]
+    # Re-running refreshes the block rather than stacking a second copy, which is
+    # what makes it safe to change a token and sweep every file again.
+    if BEGIN_MARKER in text:
+        start = text.index(BEGIN_MARKER)
+        end = text.index(END_MARKER, start) + len(END_MARKER)
+        indent = text[: start].rpartition("\n")[2]
+        text = text[: start - len(indent)] + canonical_block(indent) + text[end:]
+    else:
+        root = RE_ROOT.search(text)
+        if not root:
+            raise SystemExit(f"{path}: no :root block to replace")
+        indent = root.group("indent")
+        declared = declared_root_tokens(root.group(0))
+        replacement = canonical_block(indent) + "\n\n" + alias_block(declared, indent)
+        text = text[: root.start()] + replacement + text[root.end() :]
 
     skipped: list[Skipped] = []
     changed = 0
@@ -382,74 +558,143 @@ def remap(path: Path) -> tuple[str, list[Skipped], int]:
     def replace_paint(match: re.Match[str]) -> str:
         nonlocal changed
         prop, literal = match.group(1), match.group(2)
+        job = PROPERTY_CLASS.get(prop)
         token = HEX_TO_LEGACY.get(literal.lower())
-        role = role_for(token, PROPERTY_CLASS.get(prop)) if token else None
+        role = role_for(token, job) if token else None
         if role is None:
+            nearest = snap(literal, job)
+            if nearest is None:
+                skipped.append(
+                    Skipped(
+                        line_of(text, match.start()),
+                        "svg-attribute",
+                        f'{prop}="{literal}" — not a palette pigment, needs a token by hand',
+                    )
+                )
+                return match.group(0)
+            role = nearest[0]
             skipped.append(
                 Skipped(
                     line_of(text, match.start()),
-                    "svg-attribute",
-                    f'{prop}="{literal}" — not a palette pigment, needs a token by hand',
+                    "snapped",
+                    f'{prop}="{literal}" -> var({role}), OKLab {nearest[1]:.1f} away',
                 )
             )
-            return match.group(0)
         changed += 1
         return f'{prop}="var({role})"'
 
     text = RE_SVG_PAINT.sub(replace_paint, text)
 
-    skipped += island_text(text)
+    text, island_changed = fix_island_text(text)
+    changed += island_changed
 
-    for match in RE_RGBA.finditer(text):
-        rgb = tuple(int(g) for g in match.groups())
-        if rgb in CHANGED_PIGMENT_RGB:
-            skipped.append(
-                Skipped(
-                    line_of(text, match.start()),
-                    "stale-tint",
-                    f"{match.group(0)} — {CHANGED_PIGMENT_RGB[rgb]}, so this tint no "
-                    f"longer matches the text on it",
-                )
-            )
+    text, tint_skipped, tint_changed = remap_tints(text)
+    skipped += tint_skipped
+    changed += tint_changed
 
     return text, skipped, changed
 
 
-def island_text(text: str) -> list[Skipped]:
-    """Text inside an always-dark panel that is painted with a flipping role.
-
-    The property table cannot see this: `color: var(--muted)` is right on the page
-    and wrong inside a dark code panel, and which one it is depends on an ancestor
-    the CSS does not name. Classes are matched by prefix, so `.diff-row .code`
-    counts as inside `.diff`.
-    """
-    islands: set[str] = set()
-    for _, css in [(0, m.group(2)) for m in RE_STYLE_BLOCK.finditer(text)]:
-        for rule in RE_RULE.finditer(css):
-            body = rule.group(2)
-            if not re.search(r"background[a-z-]*:\s*var\((%s)\)" % "|".join(DARK_SURFACES), body):
-                continue
-            islands.update(re.findall(r"\.([a-zA-Z][\w-]*)", rule.group(1)))
-    if not islands:
-        return []
-
-    out: list[Skipped] = []
+def island_classes(text: str) -> set[str]:
+    """Classes whose rule paints an always-dark surface."""
+    found: set[str] = set()
+    pattern = r"background[a-z-]*:\s*var\((%s)\)" % "|".join(DARK_SURFACES)
     for style in RE_STYLE_BLOCK.finditer(text):
         for rule in RE_RULE.finditer(style.group(2)):
-            classes = re.findall(r"\.([a-zA-Z][\w-]*)", rule.group(1))
-            if not any(c.startswith(i) for c in classes for i in islands):
-                continue
-            for decl in re.finditer(r"(?<![-a-z])color:\s*var\((--[a-z0-9-]+)\)", rule.group(2)):
-                if decl.group(1) in FLIPPING_TEXT_ROLES:
-                    out.append(
-                        Skipped(
-                            line_of(text, style.start(2) + rule.start()),
-                            "island-text",
-                            f"{rule.group(1).strip()} sets color: var({decl.group(1)}) inside an "
-                            f"always-dark panel, so light mode paints dark on dark",
-                        )
-                    )
-    return out
+            if re.search(pattern, rule.group(2)):
+                found.update(re.findall(r"\.([a-zA-Z][\w-]*)", rule.group(1)))
+    return found
+
+
+def fix_island_text(text: str) -> tuple[str, int]:
+    """Repoint text inside an always-dark panel at the panel's own roles.
+
+    The property table cannot see this on its own: `color: var(--muted)` is right
+    on the page and wrong inside a code listing, and which one it is depends on an
+    ancestor the CSS never names. A class belongs to a panel when it is the panel's
+    name or a hyphenated child of it, so `.diff-row .code` counts as inside
+    `.diff` while a one-letter class captures nothing.
+    """
+    islands = island_classes(text)
+    if not islands:
+        return text, 0
+
+    count = 0
+
+    def swap(decl: re.Match[str]) -> str:
+        nonlocal count
+        replacement = PANEL_TEXT.get(decl.group(1))
+        if replacement is None:
+            return decl.group(0)
+        count += 1
+        return f"color: var({replacement})"
+
+    def repoint(match: re.Match[str]) -> str:
+        selector, body = match.group(1), match.group(2)
+        classes = re.findall(r"\.([a-zA-Z][\w-]*)", selector)
+        if not any(c == i or c.startswith(i + "-") for c in classes for i in islands):
+            return match.group(0)
+        fixed = re.sub(r"(?<![-a-z])color:\s*var\((--[a-z0-9-]+)\)", swap, body)
+        return f"{selector}{{{fixed}}}"
+
+    return RE_RULE.sub(repoint, text), count
+
+
+RE_TINT_DECL = re.compile(
+    r"(?P<prop>-{0,2}[a-z][a-z0-9-]*)\s*:\s*(?P<value>[^;{}*]*rgba?\([^)]*\)[^;{}*]*)"
+)
+
+
+def remap_tints(text: str) -> tuple[str, list[Skipped], int]:
+    """Rewrite rgba tints of known pigments onto the tinted-surface tokens."""
+    skipped: list[Skipped] = []
+    changed = 0
+
+    def replace_decl(match: re.Match[str]) -> str:
+        nonlocal changed
+        prop = match.group("prop")
+        if prop.startswith("--"):
+            return match.group(0)
+        job = PROPERTY_CLASS.get(prop)
+        line = line_of(text, match.start())
+
+        def replace_tint(ref: re.Match[str]) -> str:
+            nonlocal changed
+            rgb = tuple(int(g) for g in RE_RGBA.match(ref.group(0)).groups())
+            neutral = NEUTRAL_TINT.get(rgb)
+            if neutral:
+                changed += 1
+                return f"var({neutral})"
+            role = TINT_ROLE.get(rgb)
+            suffix = TINT_SUFFIX.get(job or "")
+            if role is None or suffix is None:
+                skipped.append(Skipped(line, "unknown-tint",
+                                       f"{prop}: {ref.group(0)} — no tinted-surface token"))
+                return ref.group(0)
+            changed += 1
+            return f"var(--{role}-{suffix})"
+
+        head, _, tail = match.group(0).partition(":")
+        return head + ":" + RE_RGBA.sub(replace_tint, tail)
+
+    text = RE_TINT_DECL.sub(replace_decl, text)
+
+    # Text on a tinted surface is --body. Solving for role-coloured text puts
+    # warning's light alpha at 0.02, which is no tint at all, so the role carries
+    # the border and the icon instead and the text stays neutral.
+    def neutralise(match: re.Match[str]) -> str:
+        nonlocal changed
+        selector, body = match.group(1), match.group(2)
+        if not re.search(r"background[a-z-]*:\s*var\(--[a-z]+-soft\)", body):
+            return match.group(0)
+        fixed, count = re.subn(
+            r"(?<![-a-z])color:\s*var\(--(?:critical|warning|positive|accent)\)",
+            "color: var(--body)", body)
+        changed += count
+        return f"{selector}{{{fixed}}}"
+
+    text = re.sub(r"([^{}]+)\{([^{}]*)\}", neutralise, text)
+    return text, skipped, changed
 
 
 def main() -> int:

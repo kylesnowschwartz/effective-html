@@ -28,7 +28,16 @@
 
     /* reference: five series hues, one step per mode. The set passes the
        palette validator under --pairs all against each mode's own surface. */
-    --clay: #994210; --clay-on-dark: #bf4f04;
+    --clay: #994210; --clay-text-on-dark: #f17d44; --clay-mark-on-dark: #bf4f04;
+    /* tinted surfaces and their borders; text on a tint is --body */
+    --red-soft: #ecdad7; --red-soft-on-dark: #462b23;
+    --red-line: #bf7375; --red-line-on-dark: #b83105;
+    --amber-soft: #eae5d3; --amber-soft-on-dark: #463a19;
+    --amber-line: #a58e3d; --amber-line-on-dark: #7e6307;
+    --blue-soft: #dce2ec; --blue-soft-on-dark: #2a3747;
+    --blue-line: #7190cc; --blue-line-on-dark: #0463be;
+    --clay-soft: #ecdfd5; --clay-soft-on-dark: #452b1e;
+    --clay-line: #bb8260; --clay-line-on-dark: #a54606;
     --indigo: #5168b9; --indigo-on-dark: #5c77df;
     --teal: #00a1a2; --teal-on-dark: #009ea0;
     --ochre: #8d7f00; --ochre-on-dark: #a79700;
@@ -79,7 +88,11 @@
     --line: var(--line-l); --line-strong: var(--line-strong-l);
     --ink: var(--slate); --body: var(--gray-700); --muted: var(--gray-600);
     --fill: var(--gray-500);
-    --accent: var(--clay); --accent-soft: rgba(153, 66, 16, 0.10);
+    --accent: var(--clay); --accent-mark: var(--clay);
+    --critical-soft: var(--red-soft); --critical-line: var(--red-line);
+    --warning-soft: var(--amber-soft); --warning-line: var(--amber-line);
+    --positive-soft: var(--blue-soft); --positive-line: var(--blue-line);
+    --accent-soft: var(--clay-soft); --accent-line: var(--clay-line);
     --s1: var(--indigo); --s2: var(--ochre); --s3: var(--plum);
     --s4: var(--teal); --s5: var(--clay);
     --s1-soft: rgba(81, 104, 185, 0.12);
@@ -92,9 +105,9 @@
     --line: var(--slate-600); --line-strong: var(--slate-500);
     --ink: var(--paper); --body: var(--gray-250); --muted: var(--gray-350);
     --fill: var(--gray-500);
-    --accent: var(--clay-on-dark); --accent-soft: rgba(191, 79, 4, 0.16);
+    --accent: var(--clay-mark-on-dark); --accent-soft: rgba(191, 79, 4, 0.16);
     --s1: var(--indigo-on-dark); --s2: var(--ochre-on-dark); --s3: var(--plum-on-dark);
-    --s4: var(--teal-on-dark); --s5: var(--clay-on-dark);
+    --s4: var(--teal-on-dark); --s5: var(--clay-mark-on-dark);
     --s1-soft: rgba(92, 119, 223, 0.18);
     --shadow-card: 0 6px 24px rgba(0, 0, 0, 0.45);
     /* Light-on-dark reads heavier at the same weight, and a weight step down is
@@ -330,7 +343,11 @@
       --bg: var(--ivory); --surface: var(--white); --wash: var(--wash-l);
       --line: var(--line-l); --line-strong: var(--line-strong-l);
       --ink: var(--slate); --body: var(--gray-700); --muted: var(--gray-600);
-      --accent: var(--clay); --accent-soft: rgba(153, 66, 16, 0.10);
+      --accent: var(--clay); --accent-mark: var(--clay);
+    --critical-soft: var(--red-soft); --critical-line: var(--red-line);
+    --warning-soft: var(--amber-soft); --warning-line: var(--amber-line);
+    --positive-soft: var(--blue-soft); --positive-line: var(--blue-line);
+    --accent-soft: var(--clay-soft); --accent-line: var(--clay-line);
       --s1: var(--indigo); --s2: var(--ochre); --s3: var(--plum);
       --s4: var(--teal); --s5: var(--clay);
       --s1-soft: rgba(81, 104, 185, 0.12);

@@ -1,3 +1,4 @@
+/* @house-style-tokens:begin — generated from house-style-tokens.css, do not hand-edit */
 /* ============================================================================
    House style tokens — the authority for every value in a generated document.
    Inline this block. It is the whole design system: colour, type, space,
@@ -33,7 +34,7 @@
   /* -- reference: five series hues, one step per mode ---------------------
      Each set passes the palette validator under --pairs all on its own
      surface. Series colours are marks, never text: text wears text tokens. */
-  --clay: #994210;      --clay-on-dark: #bf4f04;
+  --clay: #994210;      --clay-text-on-dark: #f17d44;  --clay-mark-on-dark: #bf4f04;
   --indigo: #5168b9;    --indigo-on-dark: #5c77df;
   --teal: #00a1a2;      --teal-on-dark: #009ea0;
   --ochre: #8d7f00;     --ochre-on-dark: #a79700;
@@ -48,6 +49,28 @@
   --red: #971a20;       --red-text-on-dark: #f87b5c;   --red-mark-on-dark: #ca3403;
   --amber: #896a00;     --amber-text-on-dark: #f6c330; --amber-mark-on-dark: #b78d00;
   --blue: #2757b6;      --blue-text-on-dark: #79b4ff;  --blue-mark-on-dark: #026cd1;
+
+  /* -- reference: tinted surfaces and their borders -----------------------
+     A tint is an opaque step rather than an rgba, so its contrast is a fact
+     the checker can read instead of something that depends on whatever sits
+     behind it. One alpha per mode against the page — 0.14 light, 0.22 dark —
+     for the fill, and whatever alpha reaches 3:1 for the border, since a
+     border is a non-text object. The fill is derived from the mode's text
+     step and the border from its mark step.
+
+     Text on a tint is --body, never the role colour. Solving for role-coloured
+     text puts warning's light alpha at 0.02, which is no tint at all: warning
+     on ivory is 4.83:1 and any tint spends the margin. The role still reads —
+     it colours the border and the icon, which is what the status rule already
+     requires of it. */
+  --red-soft: #ecdad7;   --red-soft-on-dark: #462b23;
+  --red-line: #bf7375;   --red-line-on-dark: #b83105;
+  --amber-soft: #eae5d3; --amber-soft-on-dark: #463a19;
+  --amber-line: #a58e3d; --amber-line-on-dark: #7e6307;
+  --blue-soft: #dce2ec;  --blue-soft-on-dark: #2a3747;
+  --blue-line: #7190cc;  --blue-line-on-dark: #0463be;
+  --clay-soft: #ecdfd5;  --clay-soft-on-dark: #452b1e;
+  --clay-line: #bb8260;  --clay-line-on-dark: #a54606;
 
   /* -- reference: families ------------------------------------------------
      ui-serif and ui-monospace resolve only in Safari; everywhere else they
@@ -153,9 +176,33 @@
   --positive-mark: var(--blue);
 
   --accent: var(--clay);
-  --accent-soft: rgba(153, 66, 16, 0.10);
-  --positive-soft: rgba(39, 87, 182, 0.10);
+  --accent-mark: var(--clay);
+
+  /* A tinted surface and its border. Text on one of these is --body. */
+  --critical-soft: var(--red-soft);      --critical-line: var(--red-line);
+  --warning-soft: var(--amber-soft);     --warning-line: var(--amber-line);
+  --positive-soft: var(--blue-soft);     --positive-line: var(--blue-line);
+  --accent-soft: var(--clay-soft);       --accent-line: var(--clay-line);
+
   --zone: rgba(20, 20, 19, 0.025);
+  /* A banded row inside an always-dark panel. It cannot use --zone, which
+     inverts with the mode while the panel does not. */
+  --panel-zone: rgba(250, 249, 245, 0.045);
+
+  /* -- role: the always-dark panel ---------------------------------------
+     A code listing or diff view is one colour in both modes, so the mode-aware
+     roles are wrong inside it: --muted resolves to #605F58 in light mode and
+     would sit at 2.87:1 on this surface. These do not change between modes,
+     which is the whole point of them. */
+  --panel: var(--slate);
+  --panel-raised: var(--gray-700);
+  --panel-ink: var(--paper);
+  --panel-body: var(--gray-250);
+  --panel-muted: var(--gray-500);
+
+  /* A scrim behind a modal or over an image. Dark in both modes: it darkens
+     whatever it covers rather than following the page. */
+  --scrim: rgba(20, 20, 19, 0.55);
 }
 
 html.dark {
@@ -174,7 +221,7 @@ html.dark {
   --s2: var(--ochre-on-dark);
   --s3: var(--plum-on-dark);
   --s4: var(--teal-on-dark);
-  --s5: var(--clay-on-dark);
+  --s5: var(--clay-mark-on-dark);
 
   --critical: var(--red-text-on-dark);
   --critical-mark: var(--red-mark-on-dark);
@@ -183,9 +230,14 @@ html.dark {
   --positive: var(--blue-text-on-dark);
   --positive-mark: var(--blue-mark-on-dark);
 
-  --accent: var(--clay-on-dark);
-  --accent-soft: rgba(191, 79, 4, 0.16);
-  --positive-soft: rgba(121, 180, 255, 0.14);
+  --accent: var(--clay-text-on-dark);
+  --accent-mark: var(--clay-mark-on-dark);
+
+  --critical-soft: var(--red-soft-on-dark);   --critical-line: var(--red-line-on-dark);
+  --warning-soft: var(--amber-soft-on-dark);  --warning-line: var(--amber-line-on-dark);
+  --positive-soft: var(--blue-soft-on-dark);  --positive-line: var(--blue-line-on-dark);
+  --accent-soft: var(--clay-soft-on-dark);    --accent-line: var(--clay-line-on-dark);
+
   --zone: rgba(250, 249, 245, 0.03);
   --shadow-card: 0 6px 24px rgba(0, 0, 0, 0.45);
 
@@ -248,6 +300,11 @@ html {
     --positive: var(--blue);
     --positive-mark: var(--blue);
     --accent: var(--clay);
+    --accent-mark: var(--clay);
+    --critical-soft: var(--red-soft);      --critical-line: var(--red-line);
+    --warning-soft: var(--amber-soft);     --warning-line: var(--amber-line);
+    --positive-soft: var(--blue-soft);     --positive-line: var(--blue-line);
+    --accent-soft: var(--clay-soft);       --accent-line: var(--clay-line);
     --leading-normal: 1.45;
   }
 
@@ -276,3 +333,4 @@ html {
     scroll-behavior: auto !important;
   }
 }
+/* @house-style-tokens:end */

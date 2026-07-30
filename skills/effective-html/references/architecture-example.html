@@ -26,7 +26,16 @@
     --gray-350: #B4B3AB; --gray-250: #CECDC5; --paper: #F2F0EA;
 
     /* reference: five series hues, one step per mode */
-    --clay: #994210; --clay-on-dark: #bf4f04;
+    --clay: #994210; --clay-text-on-dark: #f17d44; --clay-mark-on-dark: #bf4f04;
+    /* tinted surfaces and their borders; text on a tint is --body */
+    --red-soft: #ecdad7; --red-soft-on-dark: #462b23;
+    --red-line: #bf7375; --red-line-on-dark: #b83105;
+    --amber-soft: #eae5d3; --amber-soft-on-dark: #463a19;
+    --amber-line: #a58e3d; --amber-line-on-dark: #7e6307;
+    --blue-soft: #dce2ec; --blue-soft-on-dark: #2a3747;
+    --blue-line: #7190cc; --blue-line-on-dark: #0463be;
+    --clay-soft: #ecdfd5; --clay-soft-on-dark: #452b1e;
+    --clay-line: #bb8260; --clay-line-on-dark: #a54606;
     --indigo: #5168b9; --indigo-on-dark: #5c77df;
     --teal: #00a1a2; --teal-on-dark: #009ea0;
     --ochre: #8d7f00; --ochre-on-dark: #a79700;
@@ -76,8 +85,11 @@
     --line: var(--line-l); --line-strong: var(--line-strong-l);
     --ink: var(--slate); --body: var(--gray-700); --muted: var(--gray-600);
     --fill: var(--gray-500);
-    --accent: var(--clay); --accent-soft: rgba(153, 66, 16, 0.10);
-    --positive: var(--blue); --positive-soft: rgba(39, 87, 182, 0.10);
+    --accent: var(--clay); --accent-mark: var(--clay);
+    --critical-soft: var(--red-soft); --critical-line: var(--red-line);
+    --warning-soft: var(--amber-soft); --warning-line: var(--amber-line);
+    --positive-soft: var(--blue-soft); --positive-line: var(--blue-line);
+    --accent-soft: var(--clay-soft); --accent-line: var(--clay-line);
     --zone: rgba(20, 20, 19, 0.025);
   }
   html.dark {
@@ -86,8 +98,11 @@
     --line: var(--slate-600); --line-strong: var(--slate-500);
     --ink: var(--paper); --body: var(--gray-250); --muted: var(--gray-350);
     --fill: var(--gray-500);
-    --accent: var(--clay-on-dark); --accent-soft: rgba(191, 79, 4, 0.16);
-    --positive: var(--blue-text-on-dark); --positive-soft: rgba(121, 180, 255, 0.14);
+    --accent: var(--clay-text-on-dark); --accent-mark: var(--clay-mark-on-dark);
+    --critical-soft: var(--red-soft-on-dark); --critical-line: var(--red-line-on-dark);
+    --warning-soft: var(--amber-soft-on-dark); --warning-line: var(--amber-line-on-dark);
+    --positive-soft: var(--blue-soft-on-dark); --positive-line: var(--blue-line-on-dark);
+    --accent-soft: var(--clay-soft-on-dark); --accent-line: var(--clay-line-on-dark);
     --zone: rgba(250, 249, 245, 0.03);
     --shadow-card: 0 6px 24px rgba(0, 0, 0, 0.45);
     /* Light-on-dark reads heavier at the same weight, and a weight step down is
@@ -261,8 +276,12 @@
       --bg: var(--ivory); --surface: var(--white); --wash: var(--wash-l);
       --line: var(--line-l); --line-strong: var(--line-strong-l);
       --ink: var(--slate); --body: var(--gray-700); --muted: var(--gray-600);
-      --accent: var(--clay); --accent-soft: rgba(153, 66, 16, 0.10);
-      --positive: var(--blue); --positive-soft: rgba(39, 87, 182, 0.10);
+      --accent: var(--clay); --accent-mark: var(--clay);
+      --critical-soft: var(--red-soft); --critical-line: var(--red-line);
+      --warning-soft: var(--amber-soft); --warning-line: var(--amber-line);
+      --positive-soft: var(--blue-soft); --positive-line: var(--blue-line);
+      --accent-soft: var(--clay-soft); --accent-line: var(--clay-line);
+      --positive: var(--blue);
       --zone: rgba(20, 20, 19, 0.025);
       --shadow-card: none;
       --leading-normal: 1.45;
