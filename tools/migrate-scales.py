@@ -61,7 +61,10 @@ WIDTH_TOKENS = {
     "--w-card-wide": 464,
 }
 # Past this the nearest token is a different layout, not the same one rounded.
-WIDTH_TOLERANCE = 0.12
+# 640px and 980px are the two content widths the corpus uses that fall between
+# rungs. Nothing sits more than a fifth away from a token, so the ceiling admits
+# them and the report names every snap.
+WIDTH_TOLERANCE = 0.20
 
 INERT_PROPERTIES = (
     "-webkit-font-smoothing",
@@ -84,6 +87,7 @@ RE_WEIGHT = re.compile(r"(?<![-a-z])font-weight:\s*([0-9]+)")
 RE_RADIUS = re.compile(r"(?<![-a-z])border-radius:\s*([^;}]+)")
 RE_MAX_WIDTH = re.compile(r"(?<!\()max-width:\s*([0-9.]+)px")
 RE_STYLE_BLOCK = re.compile(r"(<style[^>]*>)(.*?)(</style>)", re.DOTALL | re.IGNORECASE)
+RE_INLINE_STYLE = re.compile(r'(style=")([^"]*)"')
 RE_RULE = re.compile(r"([^{}]+)\{([^{}]*)\}")
 RE_PX = re.compile(r"(-?[0-9.]+)px")
 BEGIN_MARKER = "/* @house-style-tokens:begin"
@@ -214,7 +218,15 @@ def migrate(path: Path) -> tuple[str, Counter]:
         out.append(migrate_css(style.group(2), counts))
         cursor = style.end(2)
     out.append(text[cursor:])
-    return "".join(out), counts
+    text = "".join(out)
+
+    # An inline style attribute is a declaration list with no selector, so it goes
+    # through the same rewriting wrapped in a placeholder rule.
+    def inline(match: re.Match[str]) -> str:
+        rewritten = migrate_css("x{" + match.group(2) + "}", counts)
+        return f'{match.group(1)}{rewritten[2:-1]}"'
+
+    return RE_INLINE_STYLE.sub(inline, text), counts
 
 
 def main() -> int:

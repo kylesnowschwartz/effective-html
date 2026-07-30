@@ -33,6 +33,27 @@ MARK_ROLES = (
 )
 # A tinted surface is measured the other way round: --body has to clear AA on it.
 TINT_ROLES = ("critical-soft", "warning-soft", "positive-soft", "accent-soft")
+# A solid fill is two floors at once: the fill is a non-text object against the
+# page, and its own label is text on the fill. The pairing is the point — warning's
+# label is white in light mode and slate in dark, because amber is light enough
+# that white fails on it, so neither floor can be checked without the other.
+SOLID_PAIRS = (
+    ("critical-solid", "on-critical"),
+    ("warning-solid", "on-warning"),
+    ("positive-solid", "on-positive"),
+    ("accent-solid", "on-accent"),
+)
+# A surface used directly as a background, paired with the weakest text tier that
+# lands on it. Checking the weakest one covers the tiers above it. The panels take
+# their own tier: they hold one colour in both modes, so the mode-aware tiers are
+# the wrong measurement there.
+SURFACE_TEXT = {
+    "surface": "muted",
+    "wash": "muted",
+    "oat": "muted",
+    "panel": "panel-muted",
+    "panel-raised": "panel-muted",
+}
 
 RE_VAR = re.compile(r"var\(\s*(--[a-z0-9-]+)\s*(?:,([^)]*))?\)")
 RE_DECL = re.compile(r"(--[a-z0-9-]+)\s*:\s*([^;]+)")
@@ -145,6 +166,45 @@ def main() -> int:
             if ratio < AA_BODY:
                 failures.append(f"{mode}: --body on --{role} is {ratio:.2f}:1")
             print(f"  tint  --{role:15s} {tint}  body {ratio:5.2f}:1  {verdict}")
+
+        for fill_role, label_role in SOLID_PAIRS:
+            fill = resolve(f"--{fill_role}", table)
+            label = resolve(f"--{label_role}", table)
+            if fill is None or label is None:
+                failures.append(f"{mode}: --{fill_role} or --{label_role} is undefined")
+                continue
+            if not (RE_HEX6.fullmatch(fill) and RE_HEX6.fullmatch(label)):
+                continue
+            edge = contrast(fill, background)
+            text = contrast(label, fill)
+            if edge < MARK_MIN:
+                failures.append(f"{mode}: --{fill_role} is {edge:.2f}:1 on the page")
+            if text < AA_BODY:
+                failures.append(f"{mode}: --{label_role} on --{fill_role} is {text:.2f}:1")
+            verdict = "ok" if edge >= MARK_MIN and text >= AA_BODY else "FAIL"
+            print(
+                f"  solid --{fill_role:15s} {fill}  page {edge:5.2f}:1  "
+                f"label {text:5.2f}:1  {verdict}"
+            )
+
+        for surface_role, text_role in SURFACE_TEXT.items():
+            surface = resolve(f"--{surface_role}", table)
+            ink = resolve(f"--{text_role}", table)
+            if surface is None or ink is None:
+                failures.append(f"{mode}: --{surface_role} or --{text_role} is undefined")
+                continue
+            if not (RE_HEX6.fullmatch(surface) and RE_HEX6.fullmatch(ink)):
+                continue
+            ratio = contrast(ink, surface)
+            verdict = "ok" if ratio >= AA_BODY else "FAIL"
+            if ratio < AA_BODY:
+                failures.append(
+                    f"{mode}: --{text_role} on --{surface_role} is {ratio:.2f}:1"
+                )
+            print(
+                f"  surf  --{surface_role:15s} {surface}  --{text_role} "
+                f"{ratio:5.2f}:1  {verdict}"
+            )
 
     referenced = {m.group(1) for m in RE_VAR.finditer(css)}
     for mode, table in modes.items():

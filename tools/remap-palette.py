@@ -92,18 +92,19 @@ ROLE_MAP: dict[tuple[str, str], str] = {
     # --ink flips the way that outline should: dark on light, light on dark.
     ("--slate", "edge"): "--ink",
     ("--slate", "mark"): "--ink",
-    # These pale pigments are only ever text when they sit on something dark, so
-    # they keep a fixed value instead of following the mode.
-    ("--oat", "text"): "--oat",
+    # A pale pigment used as text is either de-emphasis on the page or text on a
+    # dark panel, and only an ancestor says which. Both take --muted here; the
+    # island pass afterwards upgrades the ones that turn out to be on a panel.
+    ("--oat", "text"): "--muted",
     ("--oat", "surface"): "--oat",
     ("--oat", "edge"): "--line",
     ("--oat", "mark"): "--oat",
     ("--gray-700", "text"): "--body",
-    ("--gray-700", "surface"): "--panel-raised",
+    ("--gray-700", "surface"): "--panel",
     ("--gray-700", "edge"): "--line-strong",
     ("--gray-700", "mark"): "--body",
     ("--gray-800", "text"): "--body",
-    ("--gray-800", "surface"): "--panel-raised",
+    ("--gray-800", "surface"): "--panel",
     ("--gray-800", "edge"): "--line-strong",
     ("--gray-800", "mark"): "--body",
     # The 3.47:1 failure and the legitimate border use, told apart by property.
@@ -111,23 +112,23 @@ ROLE_MAP: dict[tuple[str, str], str] = {
     ("--gray-500", "surface"): "--fill",
     ("--gray-500", "edge"): "--fill",
     ("--gray-500", "mark"): "--fill",
-    ("--gray-300", "text"): "--panel-body",
+    ("--gray-300", "text"): "--muted",
     ("--gray-300", "surface"): "--wash",
     ("--gray-300", "edge"): "--line",
     ("--gray-300", "mark"): "--line",
-    ("--gray-200", "text"): "--panel-body",
+    ("--gray-200", "text"): "--muted",
     ("--gray-200", "surface"): "--wash",
     ("--gray-200", "edge"): "--line",
     ("--gray-200", "mark"): "--line",
-    ("--gray-150", "text"): "--panel-ink",
+    ("--gray-150", "text"): "--muted",
     ("--gray-150", "surface"): "--wash",
     ("--gray-150", "edge"): "--line",
     ("--gray-150", "mark"): "--wash",
-    ("--gray-100", "text"): "--panel-ink",
+    ("--gray-100", "text"): "--muted",
     ("--gray-100", "surface"): "--wash",
     ("--gray-100", "edge"): "--line",
     ("--gray-100", "mark"): "--wash",
-    ("--gray-50", "text"): "--panel-ink",
+    ("--gray-50", "text"): "--muted",
     ("--gray-50", "surface"): "--wash",
     ("--gray-50", "edge"): "--line",
     ("--gray-50", "mark"): "--wash",
@@ -206,11 +207,28 @@ RE_SVG_PAINT = re.compile(r"\b(fill|stroke|stop-color|flood-color)=\"(#[0-9a-fA-
 # role token used for text inside it flips underneath and the contrast inverts.
 DARK_SURFACES = {"--panel", "--panel-raised", "--slate", "--gray-700"}
 # The mode-aware role, and the fixed-colour one that replaces it on a panel.
+# A tint follows the mode, and a panel does not, so a highlighted row inside a
+# code listing has to take the dark step directly.
+PANEL_SURFACE = {
+    "--critical-soft": "--red-soft-on-dark",
+    "--warning-soft": "--amber-soft-on-dark",
+    "--positive-soft": "--blue-soft-on-dark",
+    "--accent-soft": "--clay-soft-on-dark",
+    "--zone": "--panel-zone",
+    "--wash": "--panel-raised",
+    "--surface": "--panel-raised",
+}
 PANEL_TEXT = {
     "--ink": "--panel-ink",
     "--body": "--panel-body",
     "--muted": "--panel-muted",
     "--fill": "--panel-muted",
+    # Status on a panel takes the dark text step, which is the same colour read
+    # against a dark surface. The light step lands at 2.18-2.74:1 there.
+    "--critical": "--red-text-on-dark",
+    "--warning": "--amber-text-on-dark",
+    "--positive": "--blue-text-on-dark",
+    "--accent": "--clay-text-on-dark",
 }
 RE_RULE = re.compile(r"([^{}]+)\{([^{}]*)\}")
 
@@ -596,14 +614,54 @@ def remap(path: Path) -> tuple[str, list[Skipped], int]:
 
 
 def island_classes(text: str) -> set[str]:
-    """Classes whose rule paints an always-dark surface."""
+    """Selector names whose rule paints an always-dark surface.
+
+    Tags count as well as classes: `pre { background: var(--panel-raised) }` is a
+    code block, and matching only classes leaves everything inside it on the
+    mode-aware roles.
+    """
     found: set[str] = set()
     pattern = r"background[a-z-]*:\s*var\((%s)\)" % "|".join(DARK_SURFACES)
     for style in RE_STYLE_BLOCK.finditer(text):
         for rule in RE_RULE.finditer(style.group(2)):
-            if re.search(pattern, rule.group(2)):
-                found.update(re.findall(r"\.([a-zA-Z][\w-]*)", rule.group(1)))
+            if not re.search(pattern, rule.group(2)):
+                continue
+            # Only the last compound is painted. Reading `.es-b` as a panel from
+            # `.es-b .btn { background: ... }` moves every paragraph inside it
+            # onto panel colours while it is still sitting on the page.
+            for part in rule.group(1).split(","):
+                last = re.split(r"[\s>+~]+", part.strip())[-1]
+                found.update(re.findall(r"\.([a-zA-Z][\w-]*)", last))
+                tag = re.match(r"([a-z][a-z0-9]*)", last)
+                if tag:
+                    found.add(tag.group(1))
     return found
+
+
+def inside_island(selector: str, islands: set[str]) -> bool:
+    """True when the selector's target sits inside one of these panels.
+
+    A panel qualifies as an ancestor in two shapes only: a hyphenated child of its
+    name, or the name itself in a compound before the last. The second exclusion
+    matters — `.btn.primary` painting a solid button dark must not move every
+    `.btn.ghost` rule onto panel colours, since those are two states of one
+    element rather than a container and its contents.
+    """
+    for part in selector.split(","):
+        compounds = re.split(r"[\s>+~]+", part.strip())
+        for position, compound in enumerate(compounds):
+            is_last = position == len(compounds) - 1
+            names = re.findall(r"\.([a-zA-Z][\w-]*)", compound)
+            tag = re.match(r"([a-z][a-z0-9]*)", compound)
+            if tag:
+                names.append(tag.group(1))
+            for name in names:
+                for island in islands:
+                    if name.startswith(island + "-"):
+                        return True
+                    if name == island and not is_last:
+                        return True
+    return False
 
 
 def fix_island_text(text: str) -> tuple[str, int]:
@@ -629,12 +687,24 @@ def fix_island_text(text: str) -> tuple[str, int]:
         count += 1
         return f"color: var({replacement})"
 
+    def swap_surface(decl: re.Match[str]) -> str:
+        nonlocal count
+        replacement = PANEL_SURFACE.get(decl.group(2))
+        if replacement is None:
+            return decl.group(0)
+        count += 1
+        return f"{decl.group(1)}: var({replacement})"
+
+    own_panel = re.compile(r"background[a-z-]*:\s*var\((%s)\)" % "|".join(DARK_SURFACES))
+
     def repoint(match: re.Match[str]) -> str:
         selector, body = match.group(1), match.group(2)
-        classes = re.findall(r"\.([a-zA-Z][\w-]*)", selector)
-        if not any(c == i or c.startswith(i + "-") for c in classes for i in islands):
+        # A rule can be the panel and hold text on it in one block, and then the
+        # ancestor test does not apply because there is no ancestor to find.
+        if not (own_panel.search(body) or inside_island(selector, islands)):
             return match.group(0)
         fixed = re.sub(r"(?<![-a-z])color:\s*var\((--[a-z0-9-]+)\)", swap, body)
+        fixed = re.sub(r"(background[a-z-]*):\s*var\((--[a-z0-9-]+)\)", swap_surface, fixed)
         return f"{selector}{{{fixed}}}"
 
     return RE_RULE.sub(repoint, text), count

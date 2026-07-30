@@ -79,6 +79,9 @@ TEXT_ROLES = ("--ink", "--body", "--muted")
 # Status colour never carries meaning alone; one of these must sit beside it.
 REDUNDANT_ENCODING = re.compile(
     r"aria-label|role=\"img\"|<title>|↑|↓|→|▲|▼|&(?:uarr|darr|rarr);"
+    # aria-hidden says the element carries no information, so there is no meaning
+    # for colour to be carrying alone. Confetti is the case in point.
+    r"|aria-hidden=\"true\""
     r"|class=\"[^\"]*\b(?:icon|arrow|glyph|badge-label|status-label)\b",
     re.IGNORECASE,
 )
@@ -105,6 +108,11 @@ RE_DARK_SELECTOR = re.compile(
     r"|\.dark\s+(?:html|:root|body)\b"
     r"|\[data-theme\s*[~|^$*]?=\s*[\"']?dark"
     r"|@media[^{]*prefers-color-scheme\s*:\s*dark"
+)
+# The script that makes a class-keyed dark mode reachable.
+RE_DARK_APPLY = re.compile(
+    r"documentElement\.classList\.(?:toggle|add)\(\s*['\"]dark['\"]"
+    r"|documentElement\.className\s*=[^;]*dark"
 )
 RE_STYLE_BLOCK = re.compile(r"<style[^>]*>(.*?)</style>", re.DOTALL | re.IGNORECASE)
 RE_CUSTOM_PROP = re.compile(r"(--[a-z0-9-]+)\s*:\s*([^;]+)")
@@ -161,6 +169,30 @@ def blank_comments(css: str) -> str:
 def stylesheets(text: str) -> list[tuple[int, str]]:
     """Every <style> block as (offset, css), with comments blanked."""
     return [(m.start(1), blank_comments(m.group(1))) for m in RE_STYLE_BLOCK.finditer(text)]
+
+
+RE_INLINE_STYLE = re.compile(r'style="([^"]*)"', re.IGNORECASE)
+
+
+def styled_regions(text: str) -> list[tuple[int, str]]:
+    """Every <style> block plus every inline style attribute.
+
+    A `style="padding:14px"` is a declaration like any other, and it is the shape a
+    model reaches for most often when generating a single file, so the value rules
+    read it too. Each attribute arrives wrapped in a placeholder rule so the same
+    selector-and-body regexes apply; the offset is backed up by the two characters
+    the wrapper adds, which keeps `offset + match.start()` pointing at the real
+    character in the file.
+
+    The rules that resolve selectors — contrast, panel ancestry, status encoding —
+    deliberately stay on `stylesheets()`: a placeholder selector names no element,
+    so feeding it to them would invent surfaces and classes that do not exist.
+    """
+    regions = stylesheets(text)
+    regions += [
+        (m.start(1) - 2, "x{" + m.group(1) + "}") for m in RE_INLINE_STYLE.finditer(text)
+    ]
+    return regions
 
 
 def token_blocks(text: str) -> list[tuple[int, int]]:
@@ -221,8 +253,15 @@ def resolve(name: str, table: dict[str, str], seen: frozenset[str] = frozenset()
 
 
 def declared_tokens(text: str, selector: str) -> dict[str, str]:
-    """Custom properties declared under a given selector, later wins."""
+    """Custom properties declared under a given selector, later wins.
+
+    The print block is removed first. It resets the role layer to light and names
+    `html.dark` to do it, and it sits last in the file — so leaving it in would let
+    the print values win the later-wins race and make every dark-mode measurement a
+    second copy of the light one.
+    """
     table: dict[str, str] = {}
+    text = strip_print(text)
     for match in re.finditer(re.escape(selector) + r"\s*\{(.*?)\}", text, re.DOTALL):
         for prop in RE_CUSTOM_PROP.finditer(match.group(1)):
             table[prop.group(1)] = prop.group(2)
@@ -254,7 +293,7 @@ def rule_type(path: Path, text: str) -> list[Violation]:
 
 def rule_spacing(path: Path, text: str) -> list[Violation]:
     out = []
-    for offset, css in stylesheets(text):
+    for offset, css in styled_regions(text):
         for match in RE_SPACING.finditer(css):
             prop, value = match.group(1), match.group(2)
             if "var(" in value or "calc(" in value:
@@ -276,7 +315,7 @@ def rule_spacing(path: Path, text: str) -> list[Violation]:
 
 def rule_radius(path: Path, text: str) -> list[Violation]:
     out = []
-    for offset, css in stylesheets(text):
+    for offset, css in styled_regions(text):
         for match in RE_RADIUS.finditer(css):
             value = match.group(1)
             if "var(" in value or "%" in value:
@@ -298,7 +337,7 @@ def rule_radius(path: Path, text: str) -> list[Violation]:
 def rule_width(path: Path, text: str) -> list[Violation]:
     legal = set(WIDTH_TOKENS.values())
     out = []
-    for offset, css in stylesheets(text):
+    for offset, css in styled_regions(text):
         for match in RE_MAX_WIDTH.finditer(css):
             value = float(match.group(1))
             if value not in legal:
@@ -317,7 +356,7 @@ def rule_colour_literal(path: Path, text: str) -> list[Violation]:
     """Colour literals belong in the reference palette, nowhere else."""
     spans = token_blocks(text)
     out = []
-    for offset, css in stylesheets(text):
+    for offset, css in styled_regions(text):
         for match in RE_HEX.finditer(css):
             index = offset + match.start()
             if inside(spans, index):
@@ -387,18 +426,35 @@ def strip_print(css: str) -> str:
 
 
 def rule_dark_mode(path: Path, text: str) -> list[Violation]:
-    """Both modes are first-class, so a dark block has to exist in the screen CSS."""
-    if any(RE_DARK_SELECTOR.search(strip_print(css)) for _, css in stylesheets(text)):
-        return []
-    return [
-        Violation(
-            path,
-            1,
-            "dark-mode",
-            "no dark-mode styles: needs an html.dark, [data-theme=dark] or "
-            "prefers-color-scheme: dark block in the stylesheet",
+    """Both modes are first-class, so a dark block has to exist and be reachable.
+
+    Two halves, because either one alone is a dark mode that never appears. A
+    `html.dark` block with nothing to put the class on renders as light forever;
+    the whole corpus was in that state, styles present and unreachable.
+    """
+    out = []
+    if not any(RE_DARK_SELECTOR.search(strip_print(css)) for _, css in stylesheets(text)):
+        out.append(
+            Violation(
+                path,
+                1,
+                "dark-mode",
+                "no dark-mode styles: needs an html.dark, [data-theme=dark] or "
+                "prefers-color-scheme: dark block in the stylesheet",
+            )
         )
-    ]
+    class_selector = bool(re.search(r"(?:html|:root|body)\s*\.dark\b", text))
+    if class_selector and not RE_DARK_APPLY.search(text):
+        out.append(
+            Violation(
+                path,
+                1,
+                "dark-mode",
+                "dark styles are keyed on a class that nothing sets: needs a script "
+                "putting 'dark' on documentElement before the body paints",
+            )
+        )
+    return out
 
 
 RE_COLOUR_DECL = re.compile(r"(?<![-a-z])color:\s*([^;}]+)")
@@ -421,23 +477,40 @@ def literal_colour(value: str, table: dict[str, str]) -> tuple[str, tuple[int, i
     return (match.group(0), rgb) if rgb else None
 
 
-def panel_surfaces(css: str, table: dict[str, str]) -> dict[str, tuple[str, tuple[int, int, int]]]:
-    """Class -> background colour, for every rule that paints a surface.
+# A panel is declared, not inferred. Only these tokens mark a surface that holds
+# one colour in both modes; inferring it from "darker than the page" catches a
+# 12px accent dot whose labels are positioned outside it, and an accent button
+# whose siblings sit on the page.
+PANEL_TOKENS = ("--panel", "--panel-raised", "--slate", "--gray-700", "--ink")
 
-    A code panel or dark hero holds its own colour, so text inside it answers to
-    that panel and not to the page. Without this the page is assumed and a
-    correct pale-on-dark colour reads as a failure.
+
+def panel_surfaces(css: str, table: dict[str, str]) -> dict[str, tuple[str, tuple[int, int, int]]]:
+    """Class -> background colour, for every rule that paints an always-dark panel.
+
+    A code listing holds its own colour, so text inside it answers to that panel
+    and not to the page. Without this a correct pale-on-dark colour reads as a
+    failure, and dark-on-dark reads as passing because it was compared to ivory.
     """
     out: dict[str, tuple[str, tuple[int, int, int]]] = {}
     for rule_match in re.finditer(r"([^{}]+)\{([^{}]*)\}", css):
         bg_decl = RE_BG_DECL.search(rule_match.group(2))
         if not bg_decl:
             continue
+        if not any(f"var({name})" in bg_decl.group(1) for name in PANEL_TOKENS):
+            continue
         colour = literal_colour(bg_decl.group(1), table)
         if not colour:
             continue
-        for cls in re.findall(r"\.([a-zA-Z][\w-]*)", rule_match.group(1)):
-            out.setdefault(cls, colour)
+        # Only the last compound is painted. `.es-b .btn { background: accent }`
+        # paints the button, and reading `.es-b` as an accent panel makes every
+        # paragraph inside it look like body text on a solid orange block.
+        for part in rule_match.group(1).split(","):
+            last = re.split(r"[\s>+~]+", part.strip())[-1]
+            for cls in re.findall(r"\.([a-zA-Z][\w-]*)", last):
+                out.setdefault(cls, colour)
+            tag = re.match(r"([a-z][a-z0-9]*)", last)
+            if tag:
+                out.setdefault(tag.group(1), colour)
     return out
 
 
@@ -457,7 +530,11 @@ def enclosing_surface(
         compounds = re.split(r"[\s>+~]+", part.strip())
         for position, compound in enumerate(compounds):
             is_last = position == len(compounds) - 1
-            for cls in re.findall(r"\.([a-zA-Z][\w-]*)", compound):
+            names = re.findall(r"\.([a-zA-Z][\w-]*)", compound)
+            tag = re.match(r"([a-z][a-z0-9]*)", compound)
+            if tag:
+                names.append(tag.group(1))
+            for cls in names:
                 for panel, colour in panels.items():
                     child = cls.startswith(panel + "-")
                     ancestor = cls == panel and not is_last
@@ -613,6 +690,7 @@ RE_CONTROL = re.compile(
     r"(?:\bbutton\b|\bselect\b|\bsummary\b|\binput\b|\btextarea\b"
     r"|\[role=[\"']?button|\.btn\b|\.chip\b|\.pill\b|\.control\b|\.tab\b|\.toggle\b)"
 )
+RE_SLIDER_THUMB = re.compile(r"::(?:-webkit-slider-thumb|-moz-range-thumb)")
 
 
 ROOT_FONT_PX = 16.0
@@ -664,7 +742,54 @@ def control_height(body: str, tokens: dict[str, str]) -> tuple[float, str] | Non
 
 
 RE_LABEL_CLASS = re.compile(r"<label[^>]*\bclass=\"([^\"]+)\"", re.IGNORECASE)
+RE_LABEL_FOR = re.compile(r"<label[^>]*\bfor=\"([^\"]+)\"", re.IGNORECASE)
+RE_FIELD_TAG = re.compile(
+    r"<input\b[^>]*type=\"(checkbox|radio)\"[^>]*>|<input\b(?![^>]*\btype=)[^>]*>",
+    re.IGNORECASE,
+)
+RE_ID_ATTR = re.compile(r"\bid=\"([^\"]+)\"")
+# Markup that makes an element a hit target. A class name does not: this corpus
+# uses .chip for legend swatches and for buttons, and only the HTML says which.
+RE_INTERACTIVE_TAG = re.compile(
+    # A label is a hit target too: clicking one activates the field it names.
+    r"<(?:button|summary|label|a\b[^>]*\bhref)\b[^>]*\bclass=\"([^\"]+)\""
+    r"|<[a-z][a-z0-9]*[^>]*(?:\brole=\"button\"|\btabindex=|\bonclick=)[^>]*"
+    r"\bclass=\"([^\"]+)\"",
+    re.IGNORECASE,
+)
+
+
+def interactive_classes(text: str) -> set[str]:
+    """Classes the markup puts on something clickable or focusable."""
+    found: set[str] = set()
+    for match in RE_INTERACTIVE_TAG.finditer(text):
+        for group in match.groups():
+            if group:
+                found.update(group.split())
+    return found
+
+
+def every_field_is_labelled(text: str) -> bool:
+    """True when each checkbox and radio has a label, wrapping it or pointing at it.
+
+    A labelled checkbox's target is the label, which is why a 17px box is not a
+    failure. Both shapes count: nested inside a <label>, and a sibling
+    <label for> naming its id.
+    """
+    ids = set(RE_LABEL_FOR.findall(text))
+    for match in RE_FIELD_TAG.finditer(text):
+        tag = match.group(0)
+        own_id = RE_ID_ATTR.search(tag)
+        if own_id and own_id.group(1) in ids:
+            continue
+        before = text[: match.start()]
+        if before.rfind("<label") > before.rfind("</label>"):
+            continue
+        return False
+    return True
 RE_FORM_FIELD = re.compile(r"^(?:input|textarea)\b")
+# A real control element, whose interactivity is not in question.
+RE_TAG_CONTROL = re.compile(r"^(?:button|select|summary)\b")
 
 
 def label_classes(text: str) -> set[str]:
@@ -701,17 +826,31 @@ def is_control_selector(selector: str, text: str) -> bool:
     both. Narrowing that needs real DOM matching.
     """
     labels = None
+    interactive = None
     for part in selector.split(","):
         compounds = re.split(r"[\s>+~]+", part.strip())
         last = compounds[-1]
+        if RE_SLIDER_THUMB.search(last):
+            return True  # the thumb is the slider's target, so it is measured
         if "::" in last:
             continue
         if not RE_CONTROL.search(last):
             continue
         if RE_FORM_FIELD.match(last):
+            if "range" in last:
+                continue  # the track is not the target; the thumb rule is measured
             if labels is None:
                 labels = label_classes(text)
             if any(wraps_field(a, labels) for a in compounds[:-1]):
+                continue
+            if every_field_is_labelled(text):
+                continue
+        elif not RE_TAG_CONTROL.match(last):
+            # A class-named control has to be interactive in the markup.
+            if interactive is None:
+                interactive = interactive_classes(text)
+            classes = re.findall(r"\.([a-zA-Z][\w-]*)", last)
+            if not any(c in interactive for c in classes):
                 continue
         return True
     return False
@@ -750,7 +889,7 @@ RE_PRINT_BLOCK = re.compile(r"@media\s+print")
 def rule_weight(path: Path, text: str) -> list[Violation]:
     """Only 400 and 700 render as written across platforms."""
     out = []
-    for offset, css in stylesheets(text):
+    for offset, css in styled_regions(text):
         for match in RE_WEIGHT.finditer(css):
             weight = int(match.group(1))
             if weight not in WEIGHTS:
@@ -770,7 +909,7 @@ def rule_weight(path: Path, text: str) -> list[Violation]:
 def rule_inert_property(path: Path, text: str) -> list[Violation]:
     """Properties that thin stems on macOS only, or do nothing at all."""
     out = []
-    for offset, css in stylesheets(text):
+    for offset, css in styled_regions(text):
         for prop in INERT_PROPERTIES:
             for match in re.finditer(re.escape(prop) + r"\s*:", css):
                 out.append(
@@ -858,10 +997,16 @@ RULES = {
 }
 
 
+# A shared fragment is a piece of a document, not a document. It has no <style>
+# block, no body and no dark-mode block of its own, so every whole-file rule reads
+# it as broken.
+FRAGMENTS = ("house-style-theme.html",)
+
+
 def targets(paths: list[str]) -> list[Path]:
     if paths:
         return [Path(p).resolve() for p in paths]
-    return sorted(REFERENCES.rglob("*.html"))
+    return sorted(p for p in REFERENCES.rglob("*.html") if p.name not in FRAGMENTS)
 
 
 def main() -> int:
