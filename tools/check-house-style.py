@@ -96,7 +96,16 @@ RE_SVG_PAINT = re.compile(r"\b(?:fill|stroke|stop-color|flood-color)=\"([^\"]+)\
 # rather than a layout width and answers to the viewport, not the width set.
 RE_MAX_WIDTH = re.compile(r"(?<!\()max-width:\s*([0-9.]+)px")
 RE_RADIUS = re.compile(r"border-radius:\s*([^;}]+)")
-RE_DARK_MODE = re.compile(r"html\.dark|\[data-theme|prefers-color-scheme")
+# A dark mode is a styling construct, not a mention. Matching the bare string
+# anywhere would pass on a file whose only reference is the theme-detection
+# script's matchMedia('(prefers-color-scheme: dark)') call, with no dark styles
+# at all — which is exactly the state of the 20 vendored files.
+RE_DARK_SELECTOR = re.compile(
+    r"(?:html|:root|body)\s*\.dark\b"
+    r"|\.dark\s+(?:html|:root|body)\b"
+    r"|\[data-theme\s*[~|^$*]?=\s*[\"']?dark"
+    r"|@media[^{]*prefers-color-scheme\s*:\s*dark"
+)
 RE_STYLE_BLOCK = re.compile(r"<style[^>]*>(.*?)</style>", re.DOTALL | re.IGNORECASE)
 RE_CUSTOM_PROP = re.compile(r"(--[a-z0-9-]+)\s*:\s*([^;]+)")
 RE_VAR_REF = re.compile(r"var\(\s*(--[a-z0-9-]+)\s*(?:,([^)]*))?\)")
@@ -134,9 +143,24 @@ def line_of(text: str, index: int) -> int:
     return text.count("\n", 0, index) + 1
 
 
+RE_CSS_COMMENT = re.compile(r"/\*.*?\*/", re.DOTALL)
+
+
+def blank_comments(css: str) -> str:
+    """Replace comment bodies with spaces, preserving length and line breaks.
+
+    Comments are prose about the CSS, so a hex code or a size named in one is not
+    a declaration. Blanking rather than deleting keeps every offset intact, which
+    the reported line numbers depend on.
+    """
+    return RE_CSS_COMMENT.sub(
+        lambda m: "".join("\n" if c == "\n" else " " for c in m.group(0)), css
+    )
+
+
 def stylesheets(text: str) -> list[tuple[int, str]]:
-    """Every <style> block as (offset, css)."""
-    return [(m.start(1), m.group(1)) for m in RE_STYLE_BLOCK.finditer(text)]
+    """Every <style> block as (offset, css), with comments blanked."""
+    return [(m.start(1), blank_comments(m.group(1))) for m in RE_STYLE_BLOCK.finditer(text)]
 
 
 def token_blocks(text: str) -> list[tuple[int, int]]:
@@ -338,10 +362,43 @@ def rule_svg_paint(path: Path, text: str) -> list[Violation]:
     return out
 
 
+def strip_print(css: str) -> str:
+    """CSS with @media print removed.
+
+    The print block resets the role layer to light and names html.dark to do it,
+    so leaving it in would let a file with no screen dark mode pass on its print
+    reset alone.
+    """
+    out, index = [], 0
+    for match in re.finditer(r"@media[^{]*\bprint\b[^{]*\{", css):
+        if match.start() < index:
+            continue
+        out.append(css[index : match.start()])
+        depth, i = 1, match.end()
+        while depth and i < len(css):
+            if css[i] == "{":
+                depth += 1
+            elif css[i] == "}":
+                depth -= 1
+            i += 1
+        index = i
+    out.append(css[index:])
+    return "".join(out)
+
+
 def rule_dark_mode(path: Path, text: str) -> list[Violation]:
-    if RE_DARK_MODE.search(text):
+    """Both modes are first-class, so a dark block has to exist in the screen CSS."""
+    if any(RE_DARK_SELECTOR.search(strip_print(css)) for _, css in stylesheets(text)):
         return []
-    return [Violation(path, 1, "dark-mode", "no dark mode: both modes are first-class")]
+    return [
+        Violation(
+            path,
+            1,
+            "dark-mode",
+            "no dark-mode styles: needs an html.dark, [data-theme=dark] or "
+            "prefers-color-scheme: dark block in the stylesheet",
+        )
+    ]
 
 
 RE_COLOUR_DECL = re.compile(r"(?<![-a-z])color:\s*([^;}]+)")
@@ -493,42 +550,124 @@ def rule_redundant_encoding(path: Path, text: str) -> list[Violation]:
     return out
 
 
-RE_CONTROL = re.compile(r"\b(?:button|\.btn|\[role=\"button\"\]|\.control|\.tab|\.chip-btn)\b")
+RE_CONTROL = re.compile(
+    r"(?:\bbutton\b|\bselect\b|\bsummary\b|\binput\b|\btextarea\b"
+    r"|\[role=[\"']?button|\.btn\b|\.chip\b|\.pill\b|\.control\b|\.tab\b|\.toggle\b)"
+)
 
 
-def control_height(body: str) -> tuple[float, str] | None:
+ROOT_FONT_PX = 16.0
+
+
+def lengths_in(value: str, tokens: dict[str, str]) -> list[float]:
+    """Every length in a declaration value, in px, resolving var() first.
+
+    Controls are sized with tokens, so a reader that only understands px
+    literals measures nothing at all.
+    """
+    resolved = value
+    for ref in RE_VAR_REF.finditer(value):
+        literal = resolve(ref.group(1), tokens)
+        if literal is None and ref.group(2):
+            literal = ref.group(2).strip()
+        if literal is not None:
+            resolved = resolved.replace(ref.group(0), literal)
+    out = [float(v) for v in RE_PX_VALUE.findall(resolved)]
+    out += [float(v) * ROOT_FONT_PX for v in re.findall(r"(-?[0-9.]+)rem", resolved)]
+    return out
+
+
+def control_height(body: str, tokens: dict[str, str]) -> tuple[float, str] | None:
     """Static estimate of a control's rendered height, and how it was derived.
 
-    An explicit height wins. Otherwise most controls in this corpus size by
-    padding, so the estimate is vertical padding plus a line box; ignoring that
-    case is what let the rule pass on every real button.
+    An explicit height wins. Otherwise the height comes from vertical padding
+    plus a line box, which is how almost every control here is sized — very few
+    declare a height at all.
     """
     for dimension in ("min-height", "height"):
-        match = re.search(rf"(?<![-\w]){dimension}:\s*([0-9.]+)px", body)
+        match = re.search(rf"(?<![-\w]){dimension}:\s*([^;}}]+)", body)
         if match:
-            return float(match.group(1)), dimension
+            values = lengths_in(match.group(1), tokens)
+            if values:
+                return values[0], dimension
 
     padding = re.search(r"(?<![-\w])padding:\s*([^;}]+)", body)
     if not padding:
         return None
-    values = [float(v) for v in RE_PX_VALUE.findall(padding.group(1))]
+    values = lengths_in(padding.group(1), tokens)
     if not values:
         return None
     vertical = values[0]  # 1-, 2- and 3-value forms all put the block edge first
-    size_match = RE_FONT_SIZE.search(body)
-    line_box = float(size_match.group(1)) * 1.4 if size_match else 16 * 1.4
+    size_match = re.search(r"font-size:\s*([^;}]+)", body)
+    sizes = lengths_in(size_match.group(1), tokens) if size_match else []
+    line_box = (sizes[0] if sizes else ROOT_FONT_PX) * 1.4
     return 2 * vertical + line_box, "padding + line box"
 
 
+RE_LABEL_CLASS = re.compile(r"<label[^>]*\bclass=\"([^\"]+)\"", re.IGNORECASE)
+RE_FORM_FIELD = re.compile(r"^(?:input|textarea)\b")
+
+
+def label_classes(text: str) -> set[str]:
+    """Every class that appears on a <label> element in the document."""
+    return {cls for m in RE_LABEL_CLASS.finditer(text) for cls in m.group(1).split()}
+
+
+def wraps_field(compound: str, labels: set[str]) -> bool:
+    """True when this selector compound targets a <label>.
+
+    The tag and the classes are read separately, so `label.row` counts on its tag
+    and `.checkbox` counts on a class the document puts on a label.
+    """
+    tag, _, classes = compound.partition(".")
+    if tag == "label":
+        return True
+    return any(cls in labels for cls in classes.split(".") if cls)
+
+
+def is_control_selector(selector: str, text: str) -> bool:
+    """True when the selector's own target is a control, not something inside one.
+
+    Only the last compound counts. `.chip .dot` styles a decorative dot inside a
+    chip and `.toggle .track::after` styles a thumb; neither is the hit target,
+    and measuring them reports the control as too small when it is not.
+
+    A checkbox or radio inside its own <label> is the exception: clicking the
+    label activates the field, so the target is the label's box and the field's
+    own 16px square is not the measurement. The wrapper is usually written as a
+    class, so whether it is a label is a fact about the HTML, not the selector.
+
+    Scope limit: the class-to-label lookup is document-wide, so a file that uses
+    one class on a <label> in one component and on a <div> in another exempts
+    both. Narrowing that needs real DOM matching.
+    """
+    labels = None
+    for part in selector.split(","):
+        compounds = re.split(r"[\s>+~]+", part.strip())
+        last = compounds[-1]
+        if "::" in last:
+            continue
+        if not RE_CONTROL.search(last):
+            continue
+        if RE_FORM_FIELD.match(last):
+            if labels is None:
+                labels = label_classes(text)
+            if any(wraps_field(a, labels) for a in compounds[:-1]):
+                continue
+        return True
+    return False
+
+
 def rule_control_target(path: Path, text: str) -> list[Violation]:
-    """Interactive controls need a 44px target; 48 is the rung that clears it."""
+    """Interactive controls need to clear the AA target-size floor."""
+    tokens = declared_tokens(text, ":root")
     out = []
     for offset, css in stylesheets(text):
         for rule_match in re.finditer(r"([^{}]+)\{([^{}]*)\}", css):
             selector, body = rule_match.group(1).strip(), rule_match.group(2)
-            if not RE_CONTROL.search(selector):
+            if not is_control_selector(selector, text):
                 continue
-            estimate = control_height(body)
+            estimate = control_height(body, tokens)
             if estimate is None:
                 continue
             height, basis = estimate
@@ -602,7 +741,14 @@ def rule_print_block(path: Path, text: str) -> list[Violation]:
 
 
 def rule_serif_figures(path: Path, text: str) -> list[Violation]:
-    """Digits set in the serif face jump 39% in width and cannot be corrected."""
+    """Digits set in the serif face jump 39% in width and cannot be corrected.
+
+    Scope limit: an element is only checked when it carries the serif-styled
+    class itself. A descendant selector such as `.bar h1` is not resolved, since
+    that needs real DOM matching. The shape this rule exists to catch — a stat
+    tile's number — names its own class in practice, so the gap is narrow rather
+    than absent.
+    """
     serif_classes: set[str] = set()
     for _, css in stylesheets(text):
         for rule_match in re.finditer(r"([^{}]+)\{([^{}]*)\}", css):

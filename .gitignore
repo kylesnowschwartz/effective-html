@@ -1,0 +1,6 @@
+# Browser automation scratch state from local verification runs.
+.playwright-cli/
+
+# Python bytecode from the tools/ scripts.
+__pycache__/
+*.pyc
