@@ -481,11 +481,15 @@ def literal_colour(value: str, table: dict[str, str]) -> tuple[str, tuple[int, i
     return (match.group(0), rgb) if rgb else None
 
 
-# A panel is declared, not inferred. Only these tokens mark a surface that holds
-# one colour in both modes; inferring it from "darker than the page" catches a
-# 12px accent dot whose labels are positioned outside it, and an accent button
-# whose siblings sit on the page.
-PANEL_TOKENS = ("--panel", "--panel-raised", "--slate", "--gray-700", "--ink")
+# A surface that carries its own text is declared, not inferred. Only these tokens
+# mark one; inferring it from "darker than the page" catches a 12px accent dot
+# whose labels are positioned outside it, and an accent button whose siblings sit
+# on the page. Two kinds qualify: a panel, which holds one colour in both modes,
+# and an inverted band, which flips with the page. Either way the text inside
+# answers to the surface.
+PANEL_TOKENS = (
+    "--panel", "--panel-raised", "--slate", "--gray-700", "--ink", "--invert",
+)
 
 
 def panel_surfaces(css: str, table: dict[str, str]) -> dict[str, tuple[str, tuple[int, int, int]]]:

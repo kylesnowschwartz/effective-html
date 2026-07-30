@@ -25,11 +25,15 @@
 </script>
 <style>
   /* Fixed rather than in the flow: this fragment is shared across documents whose
-     headers all differ, and a fixed corner is the one position every layout has. */
+     headers all differ. The bottom corner rather than the top one, because the top
+     right is where a document puts its own toolbar controls and a shared button
+     lands on them. */
   #themeToggle {
     position: fixed;
-    top: var(--sp-16);
-    right: var(--sp-16);
+    /* A document with its own fixture in this corner moves the button rather
+       than sitting on top of it. */
+    bottom: var(--theme-toggle-bottom, var(--sp-16));
+    right: var(--theme-toggle-right, var(--sp-16));
     z-index: 50;
     min-height: var(--sp-24);
     padding: var(--sp-4) var(--sp-12);

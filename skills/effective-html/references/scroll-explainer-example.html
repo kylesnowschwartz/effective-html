@@ -226,6 +226,14 @@
   --positive-hover: var(--blue-hover);
   --accent-hover: var(--clay-hover);
 
+  /* An inverted band — a punch slide, a summary callout, a primary control. It is
+     defined against the page, so it flips with it: painting one --panel would make
+     it the dark page's own colour and invert nothing. The muted tier is its own
+     token because it inverts too, and --muted is the page's tier, not this one. */
+  --invert: var(--ink);
+  --on-invert: var(--bg);
+  --on-invert-muted: var(--gray-350);
+
   --zone: rgba(20, 20, 19, 0.025);
   /* A banded row inside an always-dark panel. It cannot use --zone, which
      inverts with the mode while the panel does not. */
@@ -244,6 +252,12 @@
      a panel's own de-emphasis tier has to clear AA on the raised surface too,
      not only on the panel. */
   --panel-muted: var(--gray-350);
+  /* The seam between a panel and the page, and the one panel role that flips.
+     In dark mode --panel and --bg are the same step by design, so a code block
+     with no edge has no boundary at all. Light mode needs none: a near-black
+     panel on ivory is already its own boundary, so the edge takes the panel's
+     colour there and disappears. */
+  --panel-edge: var(--panel);
 
   /* A scrim behind a modal or over an image. Dark in both modes: it darkens
      whatever it covers rather than following the page. */
@@ -291,6 +305,9 @@ html.dark {
   --critical-hover: var(--red-hover-on-dark);
   --positive-hover: var(--blue-hover-on-dark);
   --accent-hover: var(--clay-hover-on-dark);
+
+  --panel-edge: var(--gray-600);
+  --on-invert-muted: var(--gray-600);
 
   --zone: rgba(250, 249, 245, 0.03);
   --shadow-card: 0 6px 24px rgba(0, 0, 0, 0.45);
@@ -354,6 +371,8 @@ html {
     --positive: var(--blue);
     --positive-mark: var(--blue);
     --oat: var(--oat-l);
+    --panel-edge: var(--panel);
+    --on-invert-muted: var(--gray-350);
     --accent: var(--clay);
     --accent-mark: var(--clay);
     --accent-solid: var(--clay);       --on-accent: var(--white);
@@ -547,7 +566,7 @@ html {
   .stat .v small { font-family: var(--font-data); font-size: var(--text-meta-data); color: var(--muted); }
 
   .controls {
-    display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: var(--sp-16) var(--sp-24);
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 210px), 1fr)); gap: var(--sp-16) var(--sp-24);
     padding: var(--sp-16) var(--sp-20) var(--sp-16); border-top: 1px solid var(--line); background: var(--wash);
   }
   .ctl { transition: opacity .35s var(--ease); }

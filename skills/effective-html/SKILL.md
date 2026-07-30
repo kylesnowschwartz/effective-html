@@ -34,6 +34,7 @@ The rules below are the ones a visual scan of the examples cannot teach, because
 - **Status colour always ships with an icon, an arrow, or a label.** Colour alone carries no meaning for a reader who cannot separate the hues, and the three status hues are re-steps of three of the five series hues.
 - **Series hues are assigned in fixed order — `--s1` through `--s5` — and never cycled.** A sixth series folds into "Other", becomes small multiples, or gets a second encoding.
 - **Text on a status tint is `--body`, never the status colour.** The tints are solved so body text clears AA on them; the role colour stays on the border and the icon.
+- **A dark surface is either a panel or an inverted band, and the two are not interchangeable.** A panel — a code listing, a diff view — holds one colour in both modes, takes `--panel` with the `--panel-*` text tiers, and needs `border: var(--hairline) solid var(--panel-edge)` because in dark mode `--panel` and `--bg` are the same step and an unedged panel has no boundary at all. An inverted band — a punch slide, a summary callout, a primary button — is defined against the page and flips with it: `--invert`, `--on-invert`, `--on-invert-muted`. Painting an inverted band `--panel` makes it the dark page's own colour and inverts nothing.
 - **No hex inside any SVG, in any mode.** Style marks through CSS classes that read theme variables, so the drawing follows the theme. `var()` resolves in SVG presentation attributes and tracks dark mode, so `fill="var(--s1)"` is also fine.
 - **`@media print` re-declares every light role token, including under `html.dark`.** `prefers-color-scheme` is not suppressed for print, so without this block a reader in OS dark mode exports a near-black page.
 
@@ -49,6 +50,8 @@ The rules below are the ones a visual scan of the examples cannot teach, because
 - **Size badges, chips and table cells with padding and line-height, never a fixed `height`.** A fixed height is the likeliest way to break text-spacing conformance when a reader's own styles apply.
 - **Long inline runs need three rules, not one:** `code, td, th { overflow-wrap: anywhere }`, `pre { white-space: pre-wrap; overflow-wrap: anywhere }`, and a `.scroll-x { overflow-x: auto }` wrapper around wide tables.
 - **Card grids use `repeat(auto-fit, minmax(min(100%, var(--w-rail)), 1fr))`.** `auto-fill` leaves empty trailing tracks; a bare `minmax` overflows below the floor.
+- **A fixed rail beside a `1fr` column needs a stacking query.** `grid-template-columns: 300px 1fr` has no narrow form of its own, and print evaluates width queries against the page box, so one `@media (max-width: 900px) { grid-template-columns: 1fr }` covers both the narrow viewport and the printed page.
+- **A floating control claims a page corner, so say which one.** The theme button takes the bottom right; the top right is where a document puts its own toolbar. A document that needs that corner moves the button with `--theme-toggle-bottom` or `--theme-toggle-right` rather than letting the two overlap.
 - **Every interactive target is at least 24×24 CSS px.** A labelled checkbox's target is the label, so wrap the input in one; a slider's target is the thumb, not the track.
 
 ### The breaking permission
