@@ -159,7 +159,7 @@ ROLE_MAP: dict[tuple[str, str], str] = {
 
 # A changed pigment written as a tint becomes the role's tinted-surface step, by
 # property: a fill takes -soft and a border takes -line. Both are opaque steps, so
-# what they measure no longer depends on whatever sits behind them.
+# their contrast is a fact rather than something the backdrop decides.
 TINT_ROLE = {
     (217, 119, 87): "accent",
     (184, 92, 62): "accent",
