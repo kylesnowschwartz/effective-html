@@ -1012,8 +1012,31 @@ def rule_undefined_token(path: Path, text: str) -> list[Violation]:
     return out
 
 
+# A colour built in JavaScript is still a colour. The replaced palette survived the
+# whole migration inside one `const COLORS = [...]` array, because a <script> is not a
+# stylesheet and the SVG it painted was assembled at runtime, so neither the
+# colour-literal rule nor the SVG rule could see it. var() resolves in a presentation
+# attribute, so a script that paints marks has no reason to name a literal.
+RE_SCRIPT_BLOCK = re.compile(r"<script\b[^>]*>(.*?)</script>", re.DOTALL | re.IGNORECASE)
+RE_BARE_HEX = re.compile(r"#(?:[0-9A-Fa-f]{3}|[0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})\b")
+
+
+def rule_script_colour(path: Path, text: str) -> list[Violation]:
+    """No colour literal inside a <script>."""
+    out = []
+    for block in RE_SCRIPT_BLOCK.finditer(text):
+        for match in RE_BARE_HEX.finditer(block.group(1)):
+            out.append(Violation(path, line_of(text, block.start(1) + match.start()),
+                "script-colour",
+                f"{match.group(0)} is a colour literal in a script: paint marks with "
+                f"var(--s1)-style role tokens, which resolve in SVG attributes and "
+                f"track dark mode"))
+    return out
+
+
 RULES = {
     "undefined-token": rule_undefined_token,
+    "script-colour": rule_script_colour,
     "type": rule_type,
     "weight": rule_weight,
     "inert-property": rule_inert_property,

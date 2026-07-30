@@ -668,14 +668,14 @@ html {
           <path class="edge" d="M310,224 L310,262"/>
           <path class="edge yes" d="M310,326 L310,368"/>
           <text class="lbl" x="320" y="350">pass</text>
-          <path class="edge no" d="M268,294 C190,294 150,294 150,212 L150,212"/>
-          <text class="lbl" x="138" y="260" fill="var(--critical-mark)">fail → status</text>
+          <path class="edge no" d="M268,294 C190,294 100,294 100,224"/>
+          <text class="lbl" x="88" y="262" fill="var(--critical-mark)">fail → status</text>
           <path class="edge" d="M310,416 L310,452"/>
           <path class="edge" d="M310,500 L310,538"/>
           <path class="edge yes" d="M310,602 L310,644"/>
           <text class="lbl" x="320" y="626">healthy</text>
-          <path class="edge no" d="M352,570 C470,570 470,690 392,720"/>
-          <text class="lbl" x="448" y="636" fill="var(--critical-mark)">canary fails</text>
+          <path class="edge no" d="M352,570 C440,570 515,600 515,700"/>
+          <text class="lbl" x="424" y="648" fill="var(--critical-mark)">canary fails</text>
           <path class="edge" d="M310,692 L310,730"/>
           <path class="edge" d="M310,778 L310,816"/>
 
@@ -703,9 +703,9 @@ html {
           </g>
 
           <g class="node bad" data-k="status">
-            <rect x="60" y="176" width="180" height="48"/>
-            <text x="150" y="196" text-anchor="middle">Post failure status</text>
-            <text class="sub" x="150" y="212" text-anchor="middle">slack #deploys</text>
+            <rect x="10" y="176" width="180" height="48"/>
+            <text x="100" y="196" text-anchor="middle">Post failure status</text>
+            <text class="sub" x="100" y="212" text-anchor="middle">slack #deploys</text>
           </g>
 
           <g class="node" data-k="build">
@@ -732,9 +732,9 @@ html {
           </g>
 
           <g class="node bad" data-k="rollback">
-            <rect x="392" y="700" width="170" height="48"/>
-            <text x="477" y="720" text-anchor="middle">Auto-rollback</text>
-            <text class="sub" x="477" y="736" text-anchor="middle">revert image tag</text>
+            <rect x="430" y="700" width="170" height="48"/>
+            <text x="515" y="720" text-anchor="middle">Auto-rollback</text>
+            <text class="sub" x="515" y="736" text-anchor="middle">revert image tag</text>
           </g>
 
           <g class="node" data-k="smoke">
