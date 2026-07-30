@@ -6,384 +6,59 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Acme — Card Variant Matrix</title>
 <style>
-  /* @house-style-tokens:begin — generated from house-style-tokens.css, do not hand-edit */
-  /* ============================================================================
-     House style tokens — the authority for every value in a generated document.
-     Inline this block. It is the whole design system: colour, type, space,
-     width, radius, and print. A value that is not in here does not exist.
-
-     Two layers throughout. The reference layer names pigments and raw steps and
-     holds every literal. The role layer names jobs and selects from the
-     reference layer. Only the reference layer changes when the palette changes,
-     and dark mode selects different steps rather than inverting.
-     ============================================================================ */
-
   :root {
-    /* -- reference: neutrals ------------------------------------------------ */
     --ivory: #FAF9F5;
-    --white: #FFFFFF;
-    --wash-l: #F0EEE6;
-    --oat: #E3DACC;
-    --line-l: #D1CFC5;
-    --line-strong-l: #BBB7AC;
-    --gray-500: #87867F;   /* borders and fills only: 3.47:1 as text on ivory */
-    --gray-600: #605F58;
-    --gray-700: #3D3D3A;
     --slate: #141413;
-    --slate-900: #1E1D1A;
-    --slate-800: #282721;
-    --slate-700: #333229;
-    --slate-600: #3E3D38;
-    --slate-500: #51504A;
-    --gray-350: #B4B3AB;
-    --gray-250: #CECDC5;
-    --paper: #F2F0EA;
+    --clay: #D97757;
+    --oat: #E3DACC;
+    --olive: #788C5D;
+    --gray-100: #F0EEE6;
+    --gray-300: #D1CFC5;
+    --gray-500: #87867F;
+    --gray-700: #3D3D3A;
+    --white: #FFFFFF;
 
-    /* -- reference: five series hues, one step per mode ---------------------
-       Each set passes the palette validator under --pairs all on its own
-       surface. Series colours are marks, never text: text wears text tokens. */
-    --clay: #994210;      --clay-text-on-dark: #f17d44;  --clay-mark-on-dark: #bf4f04;
-    --indigo: #5168b9;    --indigo-on-dark: #5c77df;
-    --teal: #00a1a2;      --teal-on-dark: #009ea0;
-    --ochre: #8d7f00;     --ochre-on-dark: #a79700;
-    --plum: #733378;      --plum-on-dark: #98449e;
+    --serif: ui-serif, Georgia, serif;
+    --sans: system-ui, -apple-system, sans-serif;
+    --mono: ui-monospace, 'SF Mono', Menlo, monospace;
 
-    /* -- reference: status, re-stepped per mode and per job -----------------
-       Light needs one step. Dark needs two: the lightness band governs whether
-       marks read as equal-weight siblings, which text does not need to do, and
-       no single step satisfies both. Deriving the mark step by maximising
-       chroma fails — it puts red and amber at the same lightness, the one cue
-       deuteranopia leaves intact, collapsing separation to ΔE 0.5. */
-    --red: #971a20;       --red-text-on-dark: #f87b5c;   --red-mark-on-dark: #ca3403;
-    --amber: #896a00;     --amber-text-on-dark: #f6c330; --amber-mark-on-dark: #b78d00;
-    --blue: #2757b6;      --blue-text-on-dark: #79b4ff;  --blue-mark-on-dark: #026cd1;
-
-    /* -- reference: tinted surfaces and their borders -----------------------
-       A tint is an opaque step rather than an rgba, so its contrast is a fact
-       the checker can read instead of something that depends on whatever sits
-       behind it. One alpha per mode against the page — 0.14 light, 0.22 dark —
-       for the fill, and whatever alpha reaches 3:1 for the border, since a
-       border is a non-text object. The fill is derived from the mode's text
-       step and the border from its mark step.
-
-       Text on a tint is --body, never the role colour. Solving for role-coloured
-       text puts warning's light alpha at 0.02, which is no tint at all: warning
-       on ivory is 4.83:1 and any tint spends the margin. The role still reads —
-       it colours the border and the icon, which is what the status rule already
-       requires of it. */
-    --red-soft: #ecdad7;   --red-soft-on-dark: #462b23;
-    --red-line: #bf7375;   --red-line-on-dark: #b83105;
-    --amber-soft: #eae5d3; --amber-soft-on-dark: #463a19;
-    --amber-line: #a58e3d; --amber-line-on-dark: #7e6307;
-    --blue-soft: #dce2ec;  --blue-soft-on-dark: #2a3747;
-    --blue-line: #7190cc;  --blue-line-on-dark: #0463be;
-    --clay-soft: #ecdfd5;  --clay-soft-on-dark: #452b1e;
-    --clay-line: #bb8260;  --clay-line-on-dark: #a54606;
-
-    /* -- reference: families ------------------------------------------------
-       ui-serif and ui-monospace resolve only in Safari; everywhere else they
-       fall through to the next slot, so the named faces do the real work.
-       Liberation, Noto and DejaVu are the Linux slots — without them none of
-       these stacks resolves to an intended face there. */
-    --font-prose: system-ui, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-    --font-display: ui-serif, Georgia, "Liberation Serif", "Noto Serif",
-                    "DejaVu Serif", "Times New Roman", serif;
-    --font-data: ui-monospace, Menlo, Consolas, "Liberation Mono",
-                 "DejaVu Sans Mono", monospace;
-
-    /* -- type: nine steps, named by job so a size is chosen by meaning ------
-       Calibrated for --font-prose. Two exceptions and no others: serif body
-       text uses --text-body-display, mono metadata uses --text-meta-data. */
-    --text-micro: 0.6875rem;   /* 11px — one glanced token, never compared */
-    --text-meta: 0.8125rem;    /* 13px — UI, metadata, table cells, chart labels */
-    --text-body: 1rem;         /* 16px — prose floor */
-    --text-lead: 1.125rem;     /* 18px */
-    --text-h4: 1.3125rem;      /* 21px */
-    --text-h3: 1.5rem;         /* 24px */
-    --text-h2: 1.875rem;       /* 30px */
-    --text-h1: 2.375rem;       /* 38px */
-    --text-display: 3.25rem;   /* 52px — one per document */
-
-    /* Equal apparent size across families: x-height/em is 0.508 prose,
-       0.481 display, 0.547 data. */
-    --text-body-display: 1.125rem;  /* 18px serif reads as 16px sans */
-    --text-meta-data: 0.75rem;      /* 12px mono reads as 13px sans */
-
-    /* -- weight: two values --------------------------------------------------
-       Georgia renders 400 and 500 identically and 600 identically to 700;
-       Segoe UI has no 500 face; DejaVu and Liberation have two weights. For
-       emphasis between normal and bold, change family or size. */
-    --weight-normal: 400;
-    --weight-bold: 700;
-
-    /* -- leading and tracking ----------------------------------------------- */
-    --leading-tight: 1.15;   /* 30px and up */
-    --leading-snug: 1.35;    /* headings 18–24px, table cells */
-    --leading-normal: 1.55;  /* body prose */
-    --leading-loose: 1.7;    /* prose at --text-meta */
-    --track-display: -0.02em;
-    --track-normal: 0;
-    --track-caps: 0.08em;    /* uppercase labels: required, not decorative */
-    --track-micro: 0.04em;   /* 11–13px mono, to offset crowding */
-
-    /* -- space: twelve rungs on a 4pt grid ---------------------------------- */
-    --sp-0: 0px;   --sp-2: 2px;   --sp-4: 4px;   --sp-8: 8px;
-    --sp-12: 12px; --sp-16: 16px; --sp-20: 20px; --sp-24: 24px;
-    --sp-32: 32px; --sp-48: 48px; --sp-64: 64px; --sp-96: 96px;
-
-    /* -- radius: four values ------------------------------------------------ */
-    --r-4: 4px; --r-8: 8px; --r-12: 12px; --r-full: 999px;
-
-    /* -- width -------------------------------------------------------------
-       278 + 32 + 726 = 1036 = 1100 − 2×32. The 726/278 split is 2.6115,
-       0.249% off φ². Prose caps well below its column: 726px runs about 94
-       characters, and 540 runs 70–74. Tables, charts and code use the column. */
-    --page-pad: 32px;
-    --gutter: 32px;
-    --w-rail: 278px;
-    --w-text: 726px;
-    --w-measure: 540px;
-    --shell: 1100px;
-    --shell-read: 808px;
-    --shell-wide: 1320px;
-    --w-steps: 320px;
-    --w-pane: 840px;
-    --w-card: 344px;
-    --w-card-wide: 464px;
-
-    /* -- elevation ---------------------------------------------------------- */
-    --shadow-card: 0 6px 24px rgba(0, 0, 0, 0.08);
-
-    /* -- role: light -------------------------------------------------------- */
-    --bg: var(--ivory);
-    --surface: var(--white);
-    --wash: var(--wash-l);
-    --line: var(--line-l);
-    --line-strong: var(--line-strong-l);
-    --ink: var(--slate);
-    --body: var(--gray-700);
-    --muted: var(--gray-600);
-    --fill: var(--gray-500);
-
-    /* Slot order is fixed and never cycled. Indigo leads so a single-series chart
-       reads as data rather than as branding, and clay sits last because it is also
-       the accent, which stays reserved for emphasis. The order is chosen by
-       measured adjacent separation: this arrangement lifts the worst adjacent
-       tritan pair from 6.6 to 14.9 light and 16.0 dark. */
-    --s1: var(--indigo);
-    --s2: var(--ochre);
-    --s3: var(--plum);
-    --s4: var(--teal);
-    --s5: var(--clay);
-
-    --critical: var(--red);
-    --critical-mark: var(--red);
-    --warning: var(--amber);
-    --warning-mark: var(--amber);
-    --positive: var(--blue);
-    --positive-mark: var(--blue);
-
-    --accent: var(--clay);
-    --accent-mark: var(--clay);
-
-    /* A tinted surface and its border. Text on one of these is --body. */
-    --critical-soft: var(--red-soft);      --critical-line: var(--red-line);
-    --warning-soft: var(--amber-soft);     --warning-line: var(--amber-line);
-    --positive-soft: var(--blue-soft);     --positive-line: var(--blue-line);
-    --accent-soft: var(--clay-soft);       --accent-line: var(--clay-line);
-
-    --zone: rgba(20, 20, 19, 0.025);
-    /* A banded row inside an always-dark panel. It cannot use --zone, which
-       inverts with the mode while the panel does not. */
-    --panel-zone: rgba(250, 249, 245, 0.045);
-
-    /* -- role: the always-dark panel ---------------------------------------
-       A code listing or diff view is one colour in both modes, so the mode-aware
-       roles are wrong inside it: --muted resolves to #605F58 in light mode and
-       would sit at 2.87:1 on this surface. These do not change between modes,
-       which is the whole point of them. */
-    --panel: var(--slate);
-    --panel-raised: var(--gray-700);
-    --panel-ink: var(--paper);
-    --panel-body: var(--gray-250);
-    --panel-muted: var(--gray-500);
-
-    /* A scrim behind a modal or over an image. Dark in both modes: it darkens
-       whatever it covers rather than following the page. */
-    --scrim: rgba(20, 20, 19, 0.55);
-  }
-
-  html.dark {
-    /* Different steps, never an inversion. */
-    --bg: var(--slate);
-    --surface: var(--slate-900);
-    --wash: var(--slate-800);
-    --line: var(--slate-600);
-    --line-strong: var(--slate-500);
-    --ink: var(--paper);
-    --body: var(--gray-250);
-    --muted: var(--gray-350);
-    --fill: var(--gray-500);
-
-    --s1: var(--indigo-on-dark);
-    --s2: var(--ochre-on-dark);
-    --s3: var(--plum-on-dark);
-    --s4: var(--teal-on-dark);
-    --s5: var(--clay-mark-on-dark);
-
-    --critical: var(--red-text-on-dark);
-    --critical-mark: var(--red-mark-on-dark);
-    --warning: var(--amber-text-on-dark);
-    --warning-mark: var(--amber-mark-on-dark);
-    --positive: var(--blue-text-on-dark);
-    --positive-mark: var(--blue-mark-on-dark);
-
-    --accent: var(--clay-text-on-dark);
-    --accent-mark: var(--clay-mark-on-dark);
-
-    --critical-soft: var(--red-soft-on-dark);   --critical-line: var(--red-line-on-dark);
-    --warning-soft: var(--amber-soft-on-dark);  --warning-line: var(--amber-line-on-dark);
-    --positive-soft: var(--blue-soft-on-dark);  --positive-line: var(--blue-line-on-dark);
-    --accent-soft: var(--clay-soft-on-dark);    --accent-line: var(--clay-line-on-dark);
-
-    --zone: rgba(250, 249, 245, 0.03);
-    --shadow-card: 0 6px 24px rgba(0, 0, 0, 0.45);
-
-    /* Light-on-dark reads heavier than dark-on-light at the same weight, and a
-       weight step down is unavailable on two-weight faces. Loosen instead. */
-    --leading-normal: 1.65;
-  }
-
-  /* Numbers that must align in a column or hold position in a chart use the data
-     face. tabular-nums measures as a no-op on Georgia, Times, Arial and
-     Helvetica, so it is an enhancement and never the mechanism. */
-  .tabular {
-    font-family: var(--font-data);
-    font-variant-numeric: tabular-nums;
-  }
-
-  .label-caps {
-    text-transform: uppercase;
-    letter-spacing: var(--track-caps);
-    font-size: var(--text-meta);
-    font-weight: var(--weight-bold);
-  }
-
-  /* A band cancels the page padding to span the shell's outer box. Neither
-     width:100vw nor width:100% is correct: inside a split track both resolve to
-     the wrong box, and 100vw ignores the scrollbar. */
-  .bleed {
-    margin-inline: calc(-1 * var(--page-pad));
-    padding-inline: var(--page-pad);
-  }
-
-  html {
-    -webkit-text-size-adjust: 100%;
-    text-size-adjust: 100%;
-  }
-
-  @media print {
-    /* prefers-color-scheme is not suppressed for print, so a dark-mode reader
-       exports a black page unless the role layer is reset to light here. */
-    :root,
-    html.dark {
-      color-scheme: light;
-      --bg: var(--ivory);
-      --surface: var(--white);
-      --wash: var(--wash-l);
-      --line: var(--line-l);
-      --line-strong: var(--line-strong-l);
-      --ink: var(--slate);
-      --body: var(--gray-700);
-      --muted: var(--gray-600);
-      --s1: var(--indigo);
-      --s2: var(--ochre);
-      --s3: var(--plum);
-      --s4: var(--teal);
-      --s5: var(--clay);
-      --critical: var(--red);
-      --critical-mark: var(--red);
-      --warning: var(--amber);
-      --warning-mark: var(--amber);
-      --positive: var(--blue);
-      --positive-mark: var(--blue);
-      --accent: var(--clay);
-      --accent-mark: var(--clay);
-      --critical-soft: var(--red-soft);      --critical-line: var(--red-line);
-      --warning-soft: var(--amber-soft);     --warning-line: var(--amber-line);
-      --positive-soft: var(--blue-soft);     --positive-line: var(--blue-line);
-      --accent-soft: var(--clay-soft);       --accent-line: var(--clay-line);
-      --leading-normal: 1.45;
-    }
-
-    body {
-      background: var(--bg);
-      color: var(--body);
-      -webkit-print-color-adjust: exact;
-      print-color-adjust: exact;
-    }
-
-    thead { display: table-header-group; }
-    tr, figure, pre { break-inside: avoid; }
-    h1, h2, h3 { break-after: avoid; }
-    p { orphans: 3; widows: 3; }
-
-    .no-print { display: none; }
-
-    @page { margin: 16mm; }
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    *, *::before, *::after {
-      animation-duration: 0.01ms !important;
-      animation-iteration-count: 1 !important;
-      transition-duration: 0.01ms !important;
-      scroll-behavior: auto !important;
-    }
-  }
-  /* @house-style-tokens:end */
-
-  /* Legacy names this file's own CSS still resolves, pointed at the
-     token block above so there is one source for every value. */
-  :root {
-    --serif: var(--font-display);
-    --sans: var(--font-prose);
-    --mono: var(--font-data);
-    --card-pad: var(--sp-20);
-    --card-border: 1px solid var(--line);
-    --card-shadow: var(--shadow-card);
+    /* live-controlled tokens */
+    --card-pad: 20px;
+    --card-border: 1.5px solid var(--gray-300);
+    --card-shadow: 0 4px 14px rgba(20, 20, 19, 0.08);
   }
 
   * { box-sizing: border-box; }
 
   body {
     margin: 0;
-    background: var(--bg);
-    color: var(--ink);
+    background: var(--ivory);
+    color: var(--slate);
     font-family: var(--sans);
-    font-size: var(--text-body);
+    font-size: 15px;
     line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
   }
 
   .page {
-    max-width: var(--shell);
+    max-width: 1100px;
     margin: 0 auto;
-    padding: 0 var(--sp-32) var(--sp-96);
+    padding: 0 28px 80px;
   }
 
   header {
-    padding: var(--sp-48) 0 var(--sp-20);
+    padding: 48px 0 20px;
   }
   header h1 {
     font-family: var(--serif);
-    font-weight: var(--weight-normal);
-    font-size: var(--text-h1);
+    font-weight: 500;
+    font-size: 36px;
     letter-spacing: -0.01em;
-    margin: 0 0 var(--sp-8);
+    margin: 0 0 6px;
   }
   header p {
-    color: var(--muted);
-    font-size: var(--text-body);
+    color: var(--gray-500);
+    font-size: 14px;
     margin: 0;
     max-width: 640px;
   }
@@ -396,27 +71,27 @@
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: var(--sp-32);
-    padding: var(--sp-16) var(--sp-20);
-    margin: var(--sp-24) 0 var(--sp-32);
-    background: var(--surface);
-    border: 1.5px solid var(--line);
-    border-radius: var(--r-12);
+    gap: 28px;
+    padding: 16px 20px;
+    margin: 24px 0 36px;
+    background: var(--white);
+    border: 1.5px solid var(--gray-300);
+    border-radius: 12px;
   }
   .control {
     display: flex;
     align-items: center;
-    gap: var(--sp-12);
+    gap: 10px;
   }
   .control-label {
     font-family: var(--mono);
-    font-size: var(--text-meta);
-    color: var(--body);
+    font-size: 12px;
+    color: var(--gray-700);
   }
   .control-value {
     font-family: var(--mono);
-    font-size: var(--text-meta);
-    color: var(--muted);
+    font-size: 12px;
+    color: var(--gray-500);
     min-width: 36px;
   }
 
@@ -424,20 +99,20 @@
     appearance: none;
     width: 140px;
     height: 4px;
-    background: var(--wash);
-    border-radius: var(--r-4);
+    background: var(--gray-300);
+    border-radius: 2px;
     outline: none;
   }
   input[type="range"]::-webkit-slider-thumb {
     appearance: none;
     width: 16px; height: 16px;
-    background: var(--accent);
+    background: var(--clay);
     border-radius: 50%;
     cursor: pointer;
   }
   input[type="range"]::-moz-range-thumb {
     width: 16px; height: 16px;
-    background: var(--accent);
+    background: var(--clay);
     border: none;
     border-radius: 50%;
     cursor: pointer;
@@ -445,54 +120,54 @@
 
   .radio-group {
     display: inline-flex;
-    border: 1.5px solid var(--line);
-    border-radius: var(--r-8);
+    border: 1.5px solid var(--gray-300);
+    border-radius: 8px;
     overflow: hidden;
   }
   .radio-group label {
-    padding: var(--sp-8) var(--sp-12);
-    font-size: var(--text-meta);
+    padding: 6px 12px;
+    font-size: 13px;
     cursor: pointer;
     user-select: none;
-    color: var(--body);
-    border-right: 1px solid var(--line);
+    color: var(--gray-700);
+    border-right: 1px solid var(--gray-300);
   }
   .radio-group label:last-child { border-right: none; }
   .radio-group input { display: none; }
   .radio-group input:checked + span {
-    color: var(--ink);
+    color: var(--slate);
   }
   .radio-group label:has(input:checked) {
-    background: var(--wash);
+    background: var(--gray-100);
   }
 
   .check {
     display: inline-flex;
     align-items: center;
-    gap: var(--sp-8);
-    font-size: var(--text-meta);
+    gap: 8px;
+    font-size: 13px;
     cursor: pointer;
     user-select: none;
   }
   .check input {
     appearance: none;
     width: 16px; height: 16px;
-    border: 1.5px solid var(--line);
-    border-radius: var(--r-4);
+    border: 1.5px solid var(--gray-300);
+    border-radius: 4px;
     margin: 0;
     cursor: pointer;
     position: relative;
   }
   .check input:checked {
-    background: var(--accent);
-    border-color: var(--accent);
+    background: var(--clay);
+    border-color: var(--clay);
   }
   .check input:checked::after {
     content: "";
     position: absolute;
     left: 4px; top: 0;
     width: 4px; height: 9px;
-    border: solid var(--surface);
+    border: solid var(--white);
     border-width: 0 2px 2px 0;
     transform: rotate(45deg);
   }
@@ -501,7 +176,7 @@
   .grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: var(--sp-32);
+    gap: 28px;
   }
   @media (max-width: 960px) {
     .grid { grid-template-columns: repeat(2, 1fr); }
@@ -515,35 +190,35 @@
     display: inline-flex;
     align-items: center;
     height: 22px;
-    padding: 0 var(--sp-12);
+    padding: 0 9px;
     font-family: var(--mono);
-    font-size: var(--text-micro);
-    font-weight: var(--weight-normal);
-    color: var(--body);
-    background: var(--wash);
-    border-radius: var(--r-full);
-    margin-bottom: var(--sp-12);
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--gray-700);
+    background: var(--gray-100);
+    border-radius: 999px;
+    margin-bottom: 10px;
   }
   .variant-note {
-    font-size: var(--text-meta);
-    color: var(--muted);
-    margin-top: var(--sp-12);
+    font-size: 12px;
+    color: var(--gray-500);
+    margin-top: 10px;
   }
 
   /* ---------- Card base ---------- */
   .card {
-    border-radius: var(--r-12);
+    border-radius: 12px;
     padding: var(--card-pad);
     transition: padding 0.15s ease, box-shadow 0.15s ease, border 0.15s ease;
     cursor: pointer;
   }
-  .card:hover { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .card:hover { outline: 2px solid var(--clay); outline-offset: 2px; }
 
   .card-head {
     display: flex;
     align-items: center;
-    gap: var(--sp-12);
-    margin-bottom: var(--sp-12);
+    gap: 12px;
+    margin-bottom: 12px;
   }
   .avatar {
     width: 36px; height: 36px;
@@ -553,21 +228,21 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: var(--text-meta);
-    font-weight: var(--weight-bold);
-    color: var(--body);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--gray-700);
   }
   .card-titles { min-width: 0; }
   .card-title {
     font-family: var(--serif);
-    font-size: var(--text-lead);
-    font-weight: var(--weight-normal);
-    margin: 0 0 var(--sp-2);
+    font-size: 17px;
+    font-weight: 500;
+    margin: 0 0 2px;
     line-height: 1.3;
   }
   .card-sub {
-    font-size: var(--text-meta);
-    color: var(--muted);
+    font-size: 13px;
+    color: var(--gray-500);
     margin: 0;
     white-space: nowrap;
     overflow: hidden;
@@ -575,54 +250,54 @@
   }
   .chips {
     display: flex;
-    gap: var(--sp-8);
-    margin-bottom: var(--sp-16);
+    gap: 6px;
+    margin-bottom: 14px;
   }
   .chip {
     display: inline-flex;
     align-items: center;
     height: 20px;
-    padding: 0 var(--sp-8);
-    font-size: var(--text-micro);
-    font-weight: var(--weight-normal);
-    border-radius: var(--r-full);
-    background: var(--wash);
-    color: var(--body);
+    padding: 0 8px;
+    font-size: 11px;
+    font-weight: 500;
+    border-radius: 999px;
+    background: var(--gray-100);
+    color: var(--gray-700);
   }
-  .chip.olive { background: var(--positive-soft); color: var(--body); }
+  .chip.olive { background: rgba(120,140,93,0.16); color: var(--olive); }
   .ghost-btn {
     display: inline-flex;
     align-items: center;
     height: 30px;
-    padding: 0 var(--sp-12);
-    font-size: var(--text-meta);
-    font-weight: var(--weight-normal);
-    color: var(--body);
+    padding: 0 12px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--gray-700);
     background: transparent;
-    border: 1.5px solid var(--line);
-    border-radius: var(--r-8);
+    border: 1.5px solid var(--gray-300);
+    border-radius: 8px;
     cursor: pointer;
   }
-  .ghost-btn:hover { background: var(--wash); }
+  .ghost-btn:hover { background: var(--gray-100); }
 
   /* ---------- Variant treatments ---------- */
   .v-flat {
-    background: var(--surface);
+    background: var(--white);
     border: none;
     box-shadow: none;
   }
   .v-outlined {
-    background: var(--surface);
+    background: var(--white);
     border: var(--card-border);
     box-shadow: none;
   }
   .v-elevated {
-    background: var(--surface);
+    background: var(--white);
     border: none;
     box-shadow: var(--card-shadow);
   }
   .v-stripe {
-    background: var(--surface);
+    background: var(--white);
     border: var(--card-border);
     box-shadow: none;
     position: relative;
@@ -633,24 +308,24 @@
     position: absolute;
     left: 0; right: 0; top: 0;
     height: 4px;
-    background: var(--accent);
+    background: var(--clay);
   }
   .v-inset {
     background: var(--oat);
     border: none;
     box-shadow: none;
   }
-  .v-inset .chip { background: var(--panel-zone); }
-  .v-inset .ghost-btn { border-color: var(--zone); }
-  .v-inset .avatar { background: var(--surface); }
+  .v-inset .chip { background: rgba(255,255,255,0.6); }
+  .v-inset .ghost-btn { border-color: rgba(20,20,19,0.15); }
+  .v-inset .avatar { background: var(--white); }
 
   .v-horizontal {
-    background: var(--surface);
+    background: var(--white);
     border: var(--card-border);
     box-shadow: none;
     display: flex;
     align-items: center;
-    gap: var(--sp-16);
+    gap: 14px;
   }
   .v-horizontal .card-head { margin: 0; flex: 1; min-width: 0; }
   .v-horizontal .chips { margin: 0; }
@@ -659,26 +334,26 @@
 
   /* ---------- Snippet panel ---------- */
   .snippet-panel {
-    margin-top: var(--sp-48);
-    border: 1.5px solid var(--line);
-    border-radius: var(--r-12);
+    margin-top: 40px;
+    border: 1.5px solid var(--gray-300);
+    border-radius: 12px;
     overflow: hidden;
   }
   .snippet-head {
-    padding: var(--sp-12) var(--sp-16);
+    padding: 10px 16px;
     font-family: var(--mono);
-    font-size: var(--text-meta);
-    color: var(--muted);
-    background: var(--wash);
-    border-bottom: 1px solid var(--line);
+    font-size: 12px;
+    color: var(--gray-500);
+    background: var(--gray-100);
+    border-bottom: 1px solid var(--gray-300);
   }
   pre#snippet {
     margin: 0;
-    padding: var(--sp-20);
-    background: var(--panel);
+    padding: 20px;
+    background: var(--slate);
     color: var(--ivory);
     font-family: var(--mono);
-    font-size: var(--text-meta);
+    font-size: 13px;
     line-height: 1.6;
     overflow-x: auto;
     min-height: 120px;
