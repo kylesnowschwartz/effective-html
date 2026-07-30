@@ -421,13 +421,60 @@ def literal_colour(value: str, table: dict[str, str]) -> tuple[str, tuple[int, i
     return (match.group(0), rgb) if rgb else None
 
 
+def panel_surfaces(css: str, table: dict[str, str]) -> dict[str, tuple[str, tuple[int, int, int]]]:
+    """Class -> background colour, for every rule that paints a surface.
+
+    A code panel or dark hero holds its own colour, so text inside it answers to
+    that panel and not to the page. Without this the page is assumed and a
+    correct pale-on-dark colour reads as a failure.
+    """
+    out: dict[str, tuple[str, tuple[int, int, int]]] = {}
+    for rule_match in re.finditer(r"([^{}]+)\{([^{}]*)\}", css):
+        bg_decl = RE_BG_DECL.search(rule_match.group(2))
+        if not bg_decl:
+            continue
+        colour = literal_colour(bg_decl.group(1), table)
+        if not colour:
+            continue
+        for cls in re.findall(r"\.([a-zA-Z][\w-]*)", rule_match.group(1)):
+            out.setdefault(cls, colour)
+    return out
+
+
+def enclosing_surface(
+    selector: str, panels: dict[str, tuple[str, tuple[int, int, int]]]
+) -> tuple[str, tuple[int, int, int]] | None:
+    """The surface a selector's target sits on, when an ancestor names one.
+
+    A panel counts as an ancestor in two shapes only: a hyphenated child of its
+    name (`.diff-row` sits inside `.diff`), or the name itself in a compound
+    before the last one (`.diff .code`). The exclusion matters — `.chip.active`
+    paints a selected chip dark, and reading that as a panel would measure every
+    other `.chip` rule against it.
+    """
+    best: tuple[int, tuple[str, tuple[int, int, int]]] | None = None
+    for part in selector.split(","):
+        compounds = re.split(r"[\s>+~]+", part.strip())
+        for position, compound in enumerate(compounds):
+            is_last = position == len(compounds) - 1
+            for cls in re.findall(r"\.([a-zA-Z][\w-]*)", compound):
+                for panel, colour in panels.items():
+                    child = cls.startswith(panel + "-")
+                    ancestor = cls == panel and not is_last
+                    if not (child or ancestor):
+                        continue
+                    if best is None or len(panel) > best[0]:
+                        best = (len(panel), colour)
+    return best[1] if best else None
+
+
 def rule_contrast(path: Path, text: str) -> list[Violation]:
     """Every text colour must clear AA against the surface it sits on.
 
     Naming-agnostic on purpose: the corpus files paint text with pigment names
     (--gray-500) while the authored files use role names (--muted), and the same
-    failing pigment has to be caught either way. A rule block that sets its own
-    background is measured against that instead of the page.
+    failing pigment has to be caught either way. The surface is the block's own
+    background if it sets one, then an enclosing panel's, then the page.
     """
     out: list[Violation] = []
     light = declared_tokens(text, ":root")
@@ -438,6 +485,11 @@ def rule_contrast(path: Path, text: str) -> list[Violation]:
     modes = [("light", light)]
     if dark_overrides:
         modes.append(("dark", dark))
+
+    panels = {mode: {} for mode, _ in modes}
+    for _, css in stylesheets(text):
+        for mode, table in modes:
+            panels[mode].update(panel_surfaces(css, table))
 
     for offset, css in stylesheets(text):
         for rule_match in re.finditer(r"([^{}]+)\{([^{}]*)\}", css):
@@ -451,15 +503,22 @@ def rule_contrast(path: Path, text: str) -> list[Violation]:
                     "var(--ivory)" if mode == "light" else "var(--slate)", table
                 )
                 own_bg = literal_colour(bg_decl.group(1), table) if bg_decl else None
-                surface = own_bg or page_bg
+                panel_bg = enclosing_surface(selector, panels[mode])
+                known = own_bg is not None or panel_bg is not None
+                if own_bg is not None:
+                    surface = own_bg
+                elif panel_bg is not None:
+                    surface = panel_bg
+                else:
+                    surface = page_bg
                 fg = literal_colour(colour_decl.group(1), table)
                 if not fg or not surface:
                     continue
-                # A block painting text lighter than the page, without declaring its
-                # own background, sits on a surface set by a sibling rule (.chip and
-                # .chip.critical). The surface is unknowable from one block, so
-                # measuring against the page would invent a failure.
-                if own_bg is None and luminance(fg[1]) >= luminance(surface[1]):
+                # With no surface named by this block or an ancestor, a colour
+                # lighter than the page sits on something a sibling rule paints
+                # (.chip and .chip.critical), and measuring against the page
+                # would invent a failure.
+                if not known and luminance(fg[1]) >= luminance(surface[1]):
                     continue
                 ratio = contrast(fg[1], surface[1])
                 if ratio < AA_BODY:
