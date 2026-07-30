@@ -22,11 +22,17 @@ DEFAULT = REPO / "skills" / "effective-html" / "references" / "house-style-token
 AA_BODY = 4.5
 MARK_MIN = 3.0  # WCAG contrast for a non-text graphical object
 
-TEXT_ROLES = ("ink", "body", "muted", "critical", "warning", "positive")
+# --accent belongs here, not with the marks. It is painted onto text 30 times in
+# the corpus, and checking it at the 3:1 mark floor is what let dark accent sit at
+# 3.81:1 unnoticed.
+TEXT_ROLES = ("ink", "body", "muted", "critical", "warning", "positive", "accent")
 MARK_ROLES = (
     "s1", "s2", "s3", "s4", "s5",
-    "critical-mark", "warning-mark", "positive-mark", "accent",
+    "critical-mark", "warning-mark", "positive-mark", "accent-mark",
+    "critical-line", "warning-line", "positive-line", "accent-line",
 )
+# A tinted surface is measured the other way round: --body has to clear AA on it.
+TINT_ROLES = ("critical-soft", "warning-soft", "positive-soft", "accent-soft")
 
 RE_VAR = re.compile(r"var\(\s*(--[a-z0-9-]+)\s*(?:,([^)]*))?\)")
 RE_DECL = re.compile(r"(--[a-z0-9-]+)\s*:\s*([^;]+)")
@@ -125,6 +131,20 @@ def main() -> int:
             if ratio < floor:
                 failures.append(f"{mode}: --{role} is {ratio:.2f}:1, under {floor}:1")
             print(f"  {kind}  --{role:15s} {value}  {ratio:5.2f}:1  {verdict}")
+
+        body = resolve("--body", table)
+        for role in TINT_ROLES:
+            tint = resolve(f"--{role}", table)
+            if tint is None:
+                failures.append(f"{mode}: --{role} is undefined")
+                continue
+            if not (RE_HEX6.fullmatch(tint) and body and RE_HEX6.fullmatch(body)):
+                continue
+            ratio = contrast(body, tint)
+            verdict = "ok" if ratio >= AA_BODY else "FAIL"
+            if ratio < AA_BODY:
+                failures.append(f"{mode}: --body on --{role} is {ratio:.2f}:1")
+            print(f"  tint  --{role:15s} {tint}  body {ratio:5.2f}:1  {verdict}")
 
     referenced = {m.group(1) for m in RE_VAR.finditer(css)}
     for mode, table in modes.items():
