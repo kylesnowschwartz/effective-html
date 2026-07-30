@@ -51,9 +51,19 @@ SURFACE_TEXT = {
     "surface": "muted",
     "wash": "muted",
     "oat": "muted",
+    "invert": "on-invert-muted",
     "panel": "panel-muted",
     "panel-raised": "panel-muted",
 }
+
+# A surface has to be findable against the page it sits on, by its own fill or by
+# its edge. --panel is the case that needs saying: it holds one colour in both
+# modes and that colour is the dark page's background, so in dark mode a code
+# block with no edge has no boundary. The floor is the separation --line already
+# provides at its weakest, not the 3:1 non-text floor — a seam between two
+# surfaces marks where one ends, it does not carry meaning of its own.
+SEAM_MIN = 1.4
+SURFACE_EDGE = {"panel": "panel-edge"}
 
 RE_VAR = re.compile(r"var\(\s*(--[a-z0-9-]+)\s*(?:,([^)]*))?\)")
 RE_DECL = re.compile(r"(--[a-z0-9-]+)\s*:\s*([^;]+)")
@@ -205,6 +215,23 @@ def main() -> int:
                 f"  surf  --{surface_role:15s} {surface}  --{text_role} "
                 f"{ratio:5.2f}:1  {verdict}"
             )
+
+        for surface_role, edge_role in SURFACE_EDGE.items():
+            surface = resolve(f"--{surface_role}", table)
+            edge = resolve(f"--{edge_role}", table)
+            if surface is None or edge is None:
+                failures.append(f"{mode}: --{surface_role} or --{edge_role} is undefined")
+                continue
+            if not (RE_HEX6.fullmatch(surface) and RE_HEX6.fullmatch(edge)):
+                continue
+            seam = max(contrast(surface, background), contrast(edge, background))
+            verdict = "ok" if seam >= SEAM_MIN else "FAIL"
+            if seam < SEAM_MIN:
+                failures.append(
+                    f"{mode}: --{surface_role} is {seam:.2f}:1 from the page by fill or edge, "
+                    f"under {SEAM_MIN}:1 — it has no visible boundary"
+                )
+            print(f"  seam  --{surface_role:15s} {surface}  edge {edge}  {seam:5.2f}:1  {verdict}")
 
     referenced = {m.group(1) for m in RE_VAR.finditer(css)}
     for mode, table in modes.items():
