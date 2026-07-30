@@ -164,6 +164,15 @@
 
   /* -- elevation ---------------------------------------------------------- */
   --shadow-card: 0 6px 24px rgba(0, 0, 0, 0.08);
+  /* A negative spread, so the shadow reads as a lifted edge rather than a halo. */
+  --shadow-edge: 0 10px 16px -12px rgba(0, 0, 0, 0.35);
+
+  /* -- motion: two curves ------------------------------------------------
+     Standard for anything that moves between two states. Overshoot only for
+     a deliberate bounce, which is a decision about the animation rather than
+     a default. */
+  --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-overshoot: cubic-bezier(0.34, 1.56, 0.64, 1);
 
   /* -- role: light -------------------------------------------------------- */
   --bg: var(--ivory);
@@ -226,6 +235,9 @@
   --invert: var(--ink);
   --on-invert: var(--bg);
   --on-invert-muted: var(--gray-350);
+  /* The accent inverts too: --accent is solved against the page, and an inverted
+     band is the opposite of the page, so it takes the other mode's step. */
+  --on-invert-accent: var(--clay-text-on-dark);
 
   --zone: rgba(20, 20, 19, 0.025);
   /* A banded row inside an always-dark panel. It cannot use --zone, which
@@ -251,6 +263,19 @@
      panel on ivory is already its own boundary, so the edge takes the panel's
      colour there and disappears. */
   --panel-edge: var(--panel);
+  /* A panel's own status steps. A diff row inside an always-dark panel cannot take
+     --positive-soft: that tint is solved against the page and flips, so in light
+     mode it paints a pale band inside a black panel and the panel's own ink lands
+     on it at 1.14:1. These hold the on-dark steps in both modes, like the rest of
+     the panel roles. */
+  --panel-critical: var(--red-text-on-dark);
+  --panel-positive: var(--blue-text-on-dark);
+  /* A step up from the plain dark accent, because this one also has to clear AA
+     on the panel's own tinted rows, not only on the panel: --clay-text-on-dark
+     is 4.47:1 on --panel-positive-soft. */
+  --panel-accent: var(--clay-hover-on-dark);
+  --panel-critical-soft: var(--red-soft-on-dark);
+  --panel-positive-soft: var(--blue-soft-on-dark);
 
   /* A scrim behind a modal or over an image. Dark in both modes: it darkens
      whatever it covers rather than following the page. */
@@ -301,9 +326,11 @@ html.dark {
 
   --panel-edge: var(--gray-600);
   --on-invert-muted: var(--gray-600);
+  --on-invert-accent: var(--clay);
 
   --zone: rgba(250, 249, 245, 0.03);
   --shadow-card: 0 6px 24px rgba(0, 0, 0, 0.45);
+  --shadow-edge: 0 10px 16px -12px rgba(0, 0, 0, 0.45);
 
   /* Light-on-dark reads heavier than dark-on-light at the same weight, and a
      weight step down is unavailable on two-weight faces. Loosen instead. */
@@ -366,6 +393,7 @@ html {
     --oat: var(--oat-l);
     --panel-edge: var(--panel);
     --on-invert-muted: var(--gray-350);
+    --on-invert-accent: var(--clay-text-on-dark);
     --accent: var(--clay);
     --accent-mark: var(--clay);
     --accent-solid: var(--clay);       --on-accent: var(--white);
@@ -431,7 +459,7 @@ html {
 
   header.masthead {
     padding: var(--sp-96) 0 var(--sp-64);
-    border-bottom: 1.5px solid var(--g300);
+    border-bottom: 1.5px solid var(--line);
     margin-bottom: var(--sp-12);
     position: relative;
     overflow: visible;
@@ -441,7 +469,7 @@ html {
     font-size: var(--text-meta);
     letter-spacing: 0.12em;
     text-transform: uppercase;
-    color: var(--g500);
+    color: var(--muted);
     margin-bottom: var(--sp-20);
     display: flex;
     align-items: center;
@@ -467,7 +495,7 @@ html {
   }
   .intro {
     font-size: var(--text-lead);
-    color: var(--g700);
+    color: var(--body);
     margin: var(--sp-24) 0 0;
     max-width: var(--w-measure);
   }
@@ -492,8 +520,8 @@ html {
   @media (max-width: 880px) { .hero-fig { max-width: var(--w-card); margin-top: var(--sp-32); } }
   .hero-fig .pane {
     border-radius: var(--r-12);
-    border: 1.5px solid var(--g300);
-    background: var(--paper);
+    border: 1.5px solid var(--line);
+    background: var(--surface);
     padding: var(--sp-16);
     aspect-ratio: 4/5;
     display: flex;
@@ -502,7 +530,7 @@ html {
     position: relative;
   }
   .hero-fig .pane.md {
-    background: var(--g100);
+    background: var(--wash);
     transform: rotate(-2.5deg) translateY(6px);
   }
   .hero-fig .pane.html {
@@ -519,16 +547,16 @@ html {
     text-transform: uppercase;
     background: var(--bg);
     padding: var(--sp-2) var(--sp-8);
-    border: 1.5px solid var(--g300);
+    border: 1.5px solid var(--line);
     border-radius: var(--r-8);
-    color: var(--g500);
+    color: var(--muted);
   }
   .hero-fig .pane.html .tag { border-color: var(--ink); color: var(--ink); }
-  .hero-fig .l { height: 6px; border-radius: var(--r-4); background: var(--g300); }
+  .hero-fig .l { height: 6px; border-radius: var(--r-4); background: var(--line); }
   .hero-fig .l.w90 { width: 90%; } .hero-fig .l.w75 { width: 75%; }
   .hero-fig .l.w60 { width: 60%; } .hero-fig .l.w82 { width: 82%; }
   .hero-fig .l.w70 { width: 70%; } .hero-fig .l.w50 { width: 50%; }
-  .hero-fig .pane.html .l { background: var(--g200); }
+  .hero-fig .pane.html .l { background: var(--line); }
   .hero-fig .pane.html .blk {
     border-radius: var(--r-4);
     flex: 1;
@@ -565,11 +593,11 @@ html {
   nav.toc a {
     font-size: var(--text-meta);
     padding: var(--sp-8) var(--sp-16);
-    border: 1.5px solid var(--g300);
+    border: 1.5px solid var(--line);
     border-radius: var(--r-full);
     text-decoration: none;
-    color: var(--g700);
-    background: var(--paper);
+    color: var(--body);
+    background: var(--surface);
     transition: border-color 120ms, color 120ms, background 120ms;
     display: inline-flex;
     align-items: center;
@@ -578,7 +606,7 @@ html {
   nav.toc a .n {
     font-family: var(--mono);
     font-size: var(--text-micro);
-    color: var(--g500);
+    color: var(--muted);
   }
   nav.toc a:hover { border-color: var(--ink); color: var(--ink); }
   nav.toc a:hover .n { color: var(--accent); }
@@ -613,14 +641,14 @@ html {
   .sec-head .count {
     font-family: var(--mono);
     font-size: var(--text-micro);
-    color: var(--g500);
-    background: var(--g100);
+    color: var(--muted);
+    background: var(--wash);
     padding: var(--sp-2) var(--sp-8);
     border-radius: var(--r-full);
   }
   .sec-intro {
     font-size: var(--text-body);
-    color: var(--g700);
+    color: var(--body);
     max-width: var(--w-text);
     margin: 0 0 var(--sp-24) var(--sp-64);
   }
@@ -639,8 +667,8 @@ html {
   a.card {
     display: flex;
     flex-direction: column;
-    background: var(--paper);
-    border: 1.5px solid var(--g300);
+    background: var(--surface);
+    border: 1.5px solid var(--line);
     border-radius: var(--r-12);
     text-decoration: none;
     color: inherit;
@@ -655,8 +683,8 @@ html {
 
   .thumb {
     height: 132px;
-    background: var(--g100);
-    border-bottom: 1.5px solid var(--g200);
+    background: var(--wash);
+    border-bottom: 1.5px solid var(--line);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -668,18 +696,18 @@ html {
     width: 100%; height: 100%;
     overflow: visible;
   }
-  .thumb svg .st { stroke: var(--g500); fill: none; stroke-width: 2.5; }
-  .thumb svg .fl { fill: var(--g300); }
+  .thumb svg .st { stroke: var(--fill); fill: none; stroke-width: 2.5; }
+  .thumb svg .fl { fill: var(--line); }
   .thumb svg .cl { fill: var(--accent); }
   .thumb svg .ol { fill: var(--positive-mark); }
-  .thumb svg .oa { fill: var(--oat); stroke: var(--g500); stroke-width: 2.5; }
+  .thumb svg .oa { fill: var(--oat); stroke: var(--fill); stroke-width: 2.5; }
   .thumb svg .sl { fill: var(--ink); }
-  .thumb svg .wh { fill: var(--paper); stroke: var(--g500); stroke-width: 2.5; }
-  .thumb svg .ln { stroke: var(--g500); stroke-width: 2.5; fill: none; stroke-linecap: round; }
+  .thumb svg .wh { fill: var(--surface); stroke: var(--fill); stroke-width: 2.5; }
+  .thumb svg .ln { stroke: var(--fill); stroke-width: 2.5; fill: none; stroke-linecap: round; }
   .thumb svg .lc { stroke: var(--accent); stroke-width: 2.5; fill: none; stroke-linecap: round; }
   .thumb svg .da { stroke-dasharray: 4 4; }
-  a.card:hover .thumb svg .fl { fill: var(--g500); }
-  a.card:hover .thumb svg .oa { fill: var(--paper); }
+  a.card:hover .thumb svg .fl { fill: var(--fill); }
+  a.card:hover .thumb svg .oa { fill: var(--surface); }
 
   .body { padding: var(--sp-20) var(--sp-20) var(--sp-16); display: flex; flex-direction: column; flex: 1; }
   .title {
@@ -693,7 +721,7 @@ html {
   }
   .desc {
     font-size: var(--text-body);
-    color: var(--g700);
+    color: var(--body);
     line-height: 1.5;
     margin-bottom: var(--sp-16);
     flex: 1;
@@ -701,14 +729,14 @@ html {
   .file {
     font-family: var(--mono);
     font-size: var(--text-micro);
-    color: var(--g500);
-    border-top: 1px solid var(--g100);
+    color: var(--muted);
+    border-top: 1px solid var(--line);
     padding-top: var(--sp-12);
     display: flex;
     align-items: center;
     justify-content: space-between;
   }
-  .file .arrow { transition: transform 150ms ease; color: var(--g300); }
+  .file .arrow { transition: transform 150ms ease; color: var(--muted); }
   a.card:hover .file { color: var(--accent); }
   a.card:hover .file .arrow { transform: translateX(3px); color: var(--accent); }
 
@@ -716,7 +744,7 @@ html {
 
   footer {
     margin-top: var(--sp-96);
-    border-top: 1.5px solid var(--g300);
+    border-top: 1.5px solid var(--line);
     padding-top: var(--sp-32);
     display: flex;
     justify-content: space-between;
@@ -724,9 +752,9 @@ html {
     gap: var(--sp-20);
     flex-wrap: wrap;
     font-size: var(--text-meta);
-    color: var(--g500);
+    color: var(--muted);
   }
-  footer .k { font-family: var(--serif); font-style: italic; color: var(--g700); font-size: var(--text-body); }
+  footer .k { font-family: var(--serif); font-style: italic; color: var(--body); font-size: var(--text-body); }
   footer a { color: var(--accent); text-decoration-color: var(--muted); text-underline-offset: 3px; }
 </style>
 <!-- @house-style-theme:begin — generated from house-style-theme.html, do not hand-edit -->

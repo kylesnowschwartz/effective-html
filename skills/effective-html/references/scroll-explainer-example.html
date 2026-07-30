@@ -171,6 +171,15 @@
 
   /* -- elevation ---------------------------------------------------------- */
   --shadow-card: 0 6px 24px rgba(0, 0, 0, 0.08);
+  /* A negative spread, so the shadow reads as a lifted edge rather than a halo. */
+  --shadow-edge: 0 10px 16px -12px rgba(0, 0, 0, 0.35);
+
+  /* -- motion: two curves ------------------------------------------------
+     Standard for anything that moves between two states. Overshoot only for
+     a deliberate bounce, which is a decision about the animation rather than
+     a default. */
+  --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-overshoot: cubic-bezier(0.34, 1.56, 0.64, 1);
 
   /* -- role: light -------------------------------------------------------- */
   --bg: var(--ivory);
@@ -233,6 +242,9 @@
   --invert: var(--ink);
   --on-invert: var(--bg);
   --on-invert-muted: var(--gray-350);
+  /* The accent inverts too: --accent is solved against the page, and an inverted
+     band is the opposite of the page, so it takes the other mode's step. */
+  --on-invert-accent: var(--clay-text-on-dark);
 
   --zone: rgba(20, 20, 19, 0.025);
   /* A banded row inside an always-dark panel. It cannot use --zone, which
@@ -258,6 +270,19 @@
      panel on ivory is already its own boundary, so the edge takes the panel's
      colour there and disappears. */
   --panel-edge: var(--panel);
+  /* A panel's own status steps. A diff row inside an always-dark panel cannot take
+     --positive-soft: that tint is solved against the page and flips, so in light
+     mode it paints a pale band inside a black panel and the panel's own ink lands
+     on it at 1.14:1. These hold the on-dark steps in both modes, like the rest of
+     the panel roles. */
+  --panel-critical: var(--red-text-on-dark);
+  --panel-positive: var(--blue-text-on-dark);
+  /* A step up from the plain dark accent, because this one also has to clear AA
+     on the panel's own tinted rows, not only on the panel: --clay-text-on-dark
+     is 4.47:1 on --panel-positive-soft. */
+  --panel-accent: var(--clay-hover-on-dark);
+  --panel-critical-soft: var(--red-soft-on-dark);
+  --panel-positive-soft: var(--blue-soft-on-dark);
 
   /* A scrim behind a modal or over an image. Dark in both modes: it darkens
      whatever it covers rather than following the page. */
@@ -308,9 +333,11 @@ html.dark {
 
   --panel-edge: var(--gray-600);
   --on-invert-muted: var(--gray-600);
+  --on-invert-accent: var(--clay);
 
   --zone: rgba(250, 249, 245, 0.03);
   --shadow-card: 0 6px 24px rgba(0, 0, 0, 0.45);
+  --shadow-edge: 0 10px 16px -12px rgba(0, 0, 0, 0.45);
 
   /* Light-on-dark reads heavier than dark-on-light at the same weight, and a
      weight step down is unavailable on two-weight faces. Loosen instead. */
@@ -373,6 +400,7 @@ html {
     --oat: var(--oat-l);
     --panel-edge: var(--panel);
     --on-invert-muted: var(--gray-350);
+    --on-invert-accent: var(--clay-text-on-dark);
     --accent: var(--clay);
     --accent-mark: var(--clay);
     --accent-solid: var(--clay);       --on-accent: var(--white);
@@ -488,8 +516,8 @@ html {
   }
   html.js .step-card {
     opacity: 0.38; transform: translateY(12px);
-    transition: opacity .4s var(--ease), transform .4s var(--ease),
-                border-color .4s var(--ease), box-shadow .4s var(--ease);
+    transition: opacity .4s var(--ease-standard), transform .4s var(--ease-standard),
+                border-color .4s var(--ease-standard), box-shadow .4s var(--ease-standard);
   }
   html.js .step.active .step-card {
     opacity: 1; transform: translateY(0);
@@ -506,10 +534,10 @@ html {
   .step p { font-size: var(--text-body); }
   .why {
     margin-top: var(--sp-12); padding: var(--sp-12) var(--sp-12); border-left: 2px solid var(--s1);
-    background: var(--s1-soft); border-radius: 0 var(--r-8) var(--r-8) 0;
+    background: var(--wash); border-radius: 0 var(--r-8) var(--r-8) 0;
     font-size: var(--text-body); color: var(--body);
   }
-  html.js .why { opacity: 0; transform: translateY(6px); transition: opacity .45s var(--ease) .1s, transform .45s var(--ease) .1s; }
+  html.js .why { opacity: 0; transform: translateY(6px); transition: opacity .45s var(--ease-standard) .1s, transform .45s var(--ease-standard) .1s; }
   html.js .step.active .why { opacity: 1; transform: none; }
   .why b { color: var(--ink); font-weight: var(--weight-bold); }
   .why .num { font-family: var(--font-data); font-size: var(--text-meta); color: var(--ink); }
@@ -529,7 +557,7 @@ html {
   .panel-head .unit { font-family: var(--font-data); font-size: var(--text-micro); color: var(--muted); letter-spacing: var(--track-caps); text-transform: uppercase; }
 
   .legend { display: flex; gap: var(--sp-16); flex-wrap: wrap; padding: var(--sp-0) var(--sp-20) var(--sp-12); }
-  .lg { display: flex; align-items: center; gap: var(--sp-8); font-family: var(--font-data); font-size: var(--text-meta-data); color: var(--muted); transition: opacity .35s var(--ease); }
+  .lg { display: flex; align-items: center; gap: var(--sp-8); font-family: var(--font-data); font-size: var(--text-meta-data); color: var(--muted); transition: opacity .35s var(--ease-standard); }
   .lg i { width: 11px; height: 11px; border-radius: var(--r-4); display: block; }
   .lg.off { opacity: 0.3; }
 
@@ -539,7 +567,7 @@ html {
   /* chart marks — every fill and stroke comes from a theme variable */
   .grid line { stroke: var(--line); stroke-width: 1; }
   .axis text { font-family: var(--font-data); font-size: var(--text-micro); fill: var(--muted); }
-  .seg { transition: y .55s var(--ease), height .55s var(--ease), opacity .35s var(--ease); }
+  .seg { transition: y .55s var(--ease-standard), height .55s var(--ease-standard), opacity .35s var(--ease-standard); }
   .seg.base { fill: var(--s1); }
   .seg.buf  { fill: var(--s2); }
   .seg.top  { fill: var(--s3); }
@@ -547,10 +575,10 @@ html {
   /* A step change glides; a slider drag has to track the thumb, so the same
      marks switch to a short linear transition while a control is live. */
   .chart.live .seg, .chart.live .lab, .chart.live .rule { transition-duration: .12s; transition-timing-function: linear; }
-  .lab { transition: transform .55s var(--ease); }
+  .lab { transition: transform .55s var(--ease-standard); }
   .lab text { font-family: var(--font-data); font-size: var(--text-micro); fill: var(--ink); }
-  .rule { transition: transform .55s var(--ease), opacity .35s var(--ease); }
-  .rule line { stroke: var(--rule); stroke-width: 1.5; stroke-dasharray: 6 4; }
+  .rule { transition: transform .55s var(--ease-standard), opacity .35s var(--ease-standard); }
+  .rule line { stroke: var(--muted); stroke-width: 1.5; stroke-dasharray: 6 4; }
   .rule text { font-family: var(--font-data); font-size: var(--text-micro); fill: var(--muted); }
   .rule.cap line { stroke: var(--accent); }
   .rule.cap text { fill: var(--accent); }
@@ -569,7 +597,7 @@ html {
     display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 210px), 1fr)); gap: var(--sp-16) var(--sp-24);
     padding: var(--sp-16) var(--sp-20) var(--sp-16); border-top: 1px solid var(--line); background: var(--wash);
   }
-  .ctl { transition: opacity .35s var(--ease); }
+  .ctl { transition: opacity .35s var(--ease-standard); }
   .ctl.pending { opacity: 0.35; }
   /* Captions are selected by role, not by tag: the checkbox's own wrapper is
      also a label and must not pick up the uppercase caption treatment. */
@@ -615,7 +643,7 @@ html {
     .viz {
       position: sticky; top: 56px; order: -1; z-index: 5; padding: var(--sp-8) var(--sp-0) var(--sp-12);
       background: var(--bg); max-height: 48vh; overflow-y: auto;
-      box-shadow: var(--shadow-edge);
+      box-shadow: var(--shadow-card);
     }
     .readout { gap: var(--sp-16); padding: var(--sp-8) var(--sp-16) var(--sp-12); }
     .stat .v { font-size: var(--text-h4); }
@@ -755,7 +783,7 @@ html {
         <span class="lg" data-lg="base"><i style="background:var(--s1)"></i> Recorded demand</span>
         <span class="lg off" data-lg="buf"><i style="background:var(--s2)"></i> Safety buffer</span>
         <span class="lg off" data-lg="top"><i style="background:var(--s3)"></i> Top-up to supplier minimum</span>
-        <span class="lg off" data-lg="cut"><i style="background:var(--line-soft);border:1px solid var(--line)"></i> Trimmed by capacity</span>
+        <span class="lg off" data-lg="cut"><i style="background:var(--wash);border:1px solid var(--line)"></i> Trimmed by capacity</span>
       </div>
 
       <div class="chart" id="chart"></div>

@@ -164,6 +164,15 @@
 
   /* -- elevation ---------------------------------------------------------- */
   --shadow-card: 0 6px 24px rgba(0, 0, 0, 0.08);
+  /* A negative spread, so the shadow reads as a lifted edge rather than a halo. */
+  --shadow-edge: 0 10px 16px -12px rgba(0, 0, 0, 0.35);
+
+  /* -- motion: two curves ------------------------------------------------
+     Standard for anything that moves between two states. Overshoot only for
+     a deliberate bounce, which is a decision about the animation rather than
+     a default. */
+  --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-overshoot: cubic-bezier(0.34, 1.56, 0.64, 1);
 
   /* -- role: light -------------------------------------------------------- */
   --bg: var(--ivory);
@@ -226,6 +235,9 @@
   --invert: var(--ink);
   --on-invert: var(--bg);
   --on-invert-muted: var(--gray-350);
+  /* The accent inverts too: --accent is solved against the page, and an inverted
+     band is the opposite of the page, so it takes the other mode's step. */
+  --on-invert-accent: var(--clay-text-on-dark);
 
   --zone: rgba(20, 20, 19, 0.025);
   /* A banded row inside an always-dark panel. It cannot use --zone, which
@@ -251,6 +263,19 @@
      panel on ivory is already its own boundary, so the edge takes the panel's
      colour there and disappears. */
   --panel-edge: var(--panel);
+  /* A panel's own status steps. A diff row inside an always-dark panel cannot take
+     --positive-soft: that tint is solved against the page and flips, so in light
+     mode it paints a pale band inside a black panel and the panel's own ink lands
+     on it at 1.14:1. These hold the on-dark steps in both modes, like the rest of
+     the panel roles. */
+  --panel-critical: var(--red-text-on-dark);
+  --panel-positive: var(--blue-text-on-dark);
+  /* A step up from the plain dark accent, because this one also has to clear AA
+     on the panel's own tinted rows, not only on the panel: --clay-text-on-dark
+     is 4.47:1 on --panel-positive-soft. */
+  --panel-accent: var(--clay-hover-on-dark);
+  --panel-critical-soft: var(--red-soft-on-dark);
+  --panel-positive-soft: var(--blue-soft-on-dark);
 
   /* A scrim behind a modal or over an image. Dark in both modes: it darkens
      whatever it covers rather than following the page. */
@@ -301,9 +326,11 @@ html.dark {
 
   --panel-edge: var(--gray-600);
   --on-invert-muted: var(--gray-600);
+  --on-invert-accent: var(--clay);
 
   --zone: rgba(250, 249, 245, 0.03);
   --shadow-card: 0 6px 24px rgba(0, 0, 0, 0.45);
+  --shadow-edge: 0 10px 16px -12px rgba(0, 0, 0, 0.45);
 
   /* Light-on-dark reads heavier than dark-on-light at the same weight, and a
      weight step down is unavailable on two-weight faces. Loosen instead. */
@@ -366,6 +393,7 @@ html {
     --oat: var(--oat-l);
     --panel-edge: var(--panel);
     --on-invert-muted: var(--gray-350);
+    --on-invert-accent: var(--clay-text-on-dark);
     --accent: var(--clay);
     --accent-mark: var(--clay);
     --accent-solid: var(--clay);       --on-accent: var(--white);
@@ -493,10 +521,10 @@ html {
     width: 360px;
     max-height: 64px;
     position: relative;
-    transition: max-height 280ms var(--ease) 600ms,
-                opacity 280ms var(--ease) 600ms,
-                padding 280ms var(--ease) 600ms,
-                border-color 200ms var(--ease);
+    transition: max-height 280ms var(--ease-overshoot) 600ms,
+                opacity 280ms var(--ease-overshoot) 600ms,
+                padding 280ms var(--ease-overshoot) 600ms,
+                border-color 200ms var(--ease-overshoot);
     cursor: pointer;
     user-select: none;
   }
@@ -510,9 +538,9 @@ html {
     border: 1.5px solid var(--fill);
     background: var(--surface);
     position: relative;
-    transition: background 180ms var(--ease),
-                border-color 180ms var(--ease),
-                transform 260ms var(--ease);
+    transition: background 180ms var(--ease-overshoot),
+                border-color 180ms var(--ease-overshoot),
+                transform 260ms var(--ease-overshoot);
   }
   .check svg {
     position: absolute;
@@ -529,14 +557,14 @@ html {
     fill: none;
     stroke-dasharray: 20;
     stroke-dashoffset: 20;
-    transition: stroke-dashoffset 220ms var(--ease) 80ms;
+    transition: stroke-dashoffset 220ms var(--ease-overshoot) 80ms;
   }
 
   .label {
     position: relative;
     font-size: var(--text-body);
     color: var(--ink);
-    transition: color 200ms var(--ease) 120ms;
+    transition: color 200ms var(--ease-overshoot) 120ms;
   }
   .label::after {
     content: "";
@@ -546,7 +574,7 @@ html {
     height: 1.5px;
     width: 0;
     background: var(--fill);
-    transition: width 240ms var(--ease) 120ms;
+    transition: width 240ms var(--ease-overshoot) 120ms;
   }
 
   .due {
@@ -558,7 +586,7 @@ html {
     border: 1.5px solid var(--line);
     padding: var(--sp-4) var(--sp-8);
     border-radius: var(--r-8);
-    transition: opacity 200ms var(--ease) 120ms;
+    transition: opacity 200ms var(--ease-overshoot) 120ms;
   }
 
   /* confetti — six particles, css-only, driven by .done on the row */
@@ -584,7 +612,7 @@ html {
     background: var(--positive);
     border-color: var(--positive);
     transform: scale(1.12);
-    animation: settle 380ms var(--ease) forwards;
+    animation: settle 380ms var(--ease-overshoot) forwards;
   }
   @keyframes settle {
     0%   { transform: scale(0.8); background: var(--accent); border-color: var(--accent); }
@@ -601,7 +629,7 @@ html {
     padding-bottom: var(--sp-8);
     opacity: 0.6;
   }
-  .task.done .confetti { animation: pop 520ms var(--ease) 200ms forwards; }
+  .task.done .confetti { animation: pop 520ms var(--ease-overshoot) 200ms forwards; }
   .task.done .confetti.c1 { --dx: -28px; --dy: -22px; --rot:  40deg; }
   .task.done .confetti.c2 { --dx:  -6px; --dy: -34px; --rot: -60deg; }
   .task.done .confetti.c3 { --dx:  18px; --dy: -26px; --rot:  90deg; }
@@ -872,11 +900,11 @@ html {
 
 <span class="c">/* checkmark draws via stroke-dashoffset, 80ms delay */</span>
 <span class="k">.check path</span>        { stroke-dasharray: 20; stroke-dashoffset: 20;
-                     transition: stroke-dashoffset 220ms var(--ease) 80ms; }
+                     transition: stroke-dashoffset 220ms var(--ease-overshoot) 80ms; }
 <span class="k">.task.done path</span>    { stroke-dashoffset: 0; }
 
 <span class="c">/* strikethrough grows left → right */</span>
-<span class="k">.label::after</span>      { width: 0; transition: width 240ms var(--ease) 120ms; }
+<span class="k">.label::after</span>      { width: 0; transition: width 240ms var(--ease-overshoot) 120ms; }
 <span class="k">.task.done .label::after</span> { width: 100%; }
 
 <span class="c">/* row steps back after the celebration */</span>

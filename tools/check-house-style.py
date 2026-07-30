@@ -261,7 +261,10 @@ def declared_tokens(text: str, selector: str) -> dict[str, str]:
     second copy of the light one.
     """
     table: dict[str, str] = {}
-    text = strip_print(text)
+    # Comments are blanked first. A comment that names a token and follows it with a
+    # colon — "--positive-soft: that tint is solved against the page" — otherwise
+    # reads as a declaration and silently redefines the role for every measurement.
+    text = strip_print(blank_comments(text))
     for match in re.finditer(re.escape(selector) + r"\s*\{(.*?)\}", text, re.DOTALL):
         for prop in RE_CUSTOM_PROP.finditer(match.group(1)):
             table[prop.group(1)] = prop.group(2)
@@ -986,7 +989,31 @@ def rule_serif_figures(path: Path, text: str) -> list[Violation]:
     return out
 
 
+# A var() with no fallback and no declaration is invalid at computed-value time, so
+# the property falls back to inherited or initial rather than erroring. That is
+# silent for a margin and catastrophic for a background: the corpus had a card
+# painted with an undeclared token, which left the surface unpainted and its own
+# ink invisible against the page.
+RE_VAR_NO_FALLBACK = re.compile(r"var\(\s*(--[a-z0-9-]+)\s*\)")
+RE_CUSTOM_DECL = re.compile(r"(--[a-z0-9-]+)\s*:")
+
+
+def rule_undefined_token(path: Path, text: str) -> list[Violation]:
+    """Every token a document reaches for has to be declared in that document."""
+    declared = set(RE_CUSTOM_DECL.findall(blank_comments(text)))
+    out = []
+    for offset, css in styled_regions(text):
+        for match in RE_VAR_NO_FALLBACK.finditer(css):
+            if match.group(1) in declared:
+                continue
+            out.append(Violation(path, line_of(text, offset + match.start()), "undefined-token",
+                f"{match.group(1)} is used but never declared: the property resolves to "
+                f"inherited or initial, not to a value"))
+    return out
+
+
 RULES = {
+    "undefined-token": rule_undefined_token,
     "type": rule_type,
     "weight": rule_weight,
     "inert-property": rule_inert_property,
