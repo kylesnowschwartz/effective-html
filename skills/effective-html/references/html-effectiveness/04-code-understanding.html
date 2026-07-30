@@ -6,39 +6,415 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>How authentication flows through acme/web</title>
 <style>
+/* @house-style-tokens:begin — generated from house-style-tokens.css, do not hand-edit */
+/* ============================================================================
+   House style tokens — the authority for every value in a generated document.
+   Inline this block. It is the whole design system: colour, type, space,
+   width, radius, and print. A value that is not in here does not exist.
+
+   Two layers throughout. The reference layer names pigments and raw steps and
+   holds every literal. The role layer names jobs and selects from the
+   reference layer. Only the reference layer changes when the palette changes,
+   and dark mode selects different steps rather than inverting.
+   ============================================================================ */
+
+:root {
+  /* -- reference: neutrals ------------------------------------------------ */
+  --ivory: #FAF9F5;
+  --white: #FFFFFF;
+  --wash-l: #F0EEE6;
+  --oat-l: #E3DACC;
+  --line-l: #D1CFC5;
+  --line-strong-l: #BBB7AC;
+  --gray-500: #87867F;   /* borders and fills only: 3.47:1 as text on ivory */
+  --gray-600: #605F58;
+  --gray-700: #3D3D3A;
+  --slate: #141413;
+  --slate-900: #1E1D1A;
+  --slate-800: #282721;
+  --slate-700: #333229;
+  --slate-600: #3E3D38;
+  --slate-500: #51504A;
+  --gray-350: #B4B3AB;
+  --gray-250: #CECDC5;
+  --paper: #F2F0EA;
+
+  /* -- reference: five series hues, one step per mode ---------------------
+     Each set passes the palette validator under --pairs all on its own
+     surface. Series colours are marks, never text: text wears text tokens. */
+  --clay: #994210;      --clay-text-on-dark: #f17d44;  --clay-mark-on-dark: #bf4f04;
+  --indigo: #5168b9;    --indigo-on-dark: #5c77df;
+  --teal: #00a1a2;      --teal-on-dark: #009ea0;
+  --ochre: #8d7f00;     --ochre-on-dark: #a79700;
+  --plum: #733378;      --plum-on-dark: #98449e;
+
+  /* -- reference: status, re-stepped per mode and per job -----------------
+     Light needs one step. Dark needs two: the lightness band governs whether
+     marks read as equal-weight siblings, which text does not need to do, and
+     no single step satisfies both. Deriving the mark step by maximising
+     chroma fails — it puts red and amber at the same lightness, the one cue
+     deuteranopia leaves intact, collapsing separation to ΔE 0.5. */
+  --red: #971a20;       --red-text-on-dark: #f87b5c;   --red-mark-on-dark: #ca3403;
+  --amber: #896a00;     --amber-text-on-dark: #f6c330; --amber-mark-on-dark: #b78d00;
+  --blue: #2757b6;      --blue-text-on-dark: #79b4ff;  --blue-mark-on-dark: #026cd1;
+
+  /* -- reference: tinted surfaces and their borders -----------------------
+     A tint is an opaque step rather than an rgba, so its contrast is a fact
+     the checker can read instead of something that depends on whatever sits
+     behind it. One alpha per mode against the page — 0.14 light, 0.22 dark —
+     for the fill, and whatever alpha reaches 3:1 for the border, since a
+     border is a non-text object. The fill is derived from the mode's text
+     step and the border from its mark step.
+
+     Text on a tint is --body, never the role colour. Solving for role-coloured
+     text puts warning's light alpha at 0.02, which is no tint at all: warning
+     on ivory is 4.83:1 and any tint spends the margin. The role still reads —
+     it colours the border and the icon, which is what the status rule already
+     requires of it. */
+  --red-soft: #ecdad7;   --red-soft-on-dark: #462b23;
+  --red-line: #bf7375;   --red-line-on-dark: #b83105;
+  --amber-soft: #eae5d3; --amber-soft-on-dark: #463a19;
+  --amber-line: #a58e3d; --amber-line-on-dark: #7e6307;
+  --blue-soft: #dce2ec;  --blue-soft-on-dark: #2a3747;
+  --blue-line: #7190cc;  --blue-line-on-dark: #0463be;
+  --clay-soft: #ecdfd5;  --clay-soft-on-dark: #452b1e;
+  --clay-line: #bb8260;  --clay-line-on-dark: #a54606;
+
+  /* A solid button needs a hover it cannot get from the base step. One fixed
+     lightness move at the same hue and chroma: darker on a light page, lighter
+     on a dark one. White text stays above 8.5:1 on every one of them. */
+  --clay-hover: #812c00;  --clay-hover-on-dark: #ff955d;
+  --red-hover: #7e0008;   --red-hover-on-dark: #ff9373;
+  --blue-hover: #11409d;  --blue-hover-on-dark: #90ccff;
+
+  /* -- reference: families ------------------------------------------------
+     ui-serif and ui-monospace resolve only in Safari; everywhere else they
+     fall through to the next slot, so the named faces do the real work.
+     Liberation, Noto and DejaVu are the Linux slots — without them none of
+     these stacks resolves to an intended face there. */
+  --font-prose: system-ui, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-display: ui-serif, Georgia, "Liberation Serif", "Noto Serif",
+                  "DejaVu Serif", "Times New Roman", serif;
+  --font-data: ui-monospace, Menlo, Consolas, "Liberation Mono",
+               "DejaVu Sans Mono", monospace;
+
+  /* -- type: nine steps, named by job so a size is chosen by meaning ------
+     Calibrated for --font-prose. Two exceptions and no others: serif body
+     text uses --text-body-display, mono metadata uses --text-meta-data. */
+  --text-micro: 0.6875rem;   /* 11px — one glanced token, never compared */
+  --text-meta: 0.8125rem;    /* 13px — UI, metadata, table cells, chart labels */
+  --text-body: 1rem;         /* 16px — prose floor */
+  --text-lead: 1.125rem;     /* 18px */
+  --text-h4: 1.3125rem;      /* 21px */
+  --text-h3: 1.5rem;         /* 24px */
+  --text-h2: 1.875rem;       /* 30px */
+  --text-h1: 2.375rem;       /* 38px */
+  --text-display: 3.25rem;   /* 52px — one per document */
+
+  /* Equal apparent size across families: x-height/em is 0.508 prose,
+     0.481 display, 0.547 data. */
+  --text-body-display: 1.125rem;  /* 18px serif reads as 16px sans */
+  --text-meta-data: 0.75rem;      /* 12px mono reads as 13px sans */
+
+  /* -- weight: two values --------------------------------------------------
+     Georgia renders 400 and 500 identically and 600 identically to 700;
+     Segoe UI has no 500 face; DejaVu and Liberation have two weights. For
+     emphasis between normal and bold, change family or size. */
+  --weight-normal: 400;
+  --weight-bold: 700;
+
+  /* -- leading and tracking ----------------------------------------------- */
+  --leading-tight: 1.15;   /* 30px and up */
+  --leading-snug: 1.35;    /* headings 18–24px, table cells */
+  --leading-normal: 1.55;  /* body prose */
+  --leading-loose: 1.7;    /* prose at --text-meta */
+  --track-display: -0.02em;
+  --track-normal: 0;
+  --track-caps: 0.08em;    /* uppercase labels: required, not decorative */
+  --track-micro: 0.04em;   /* 11–13px mono, to offset crowding */
+
+  /* -- space: twelve rungs on a 4pt grid ---------------------------------- */
+  --sp-0: 0px;   --sp-2: 2px;   --sp-4: 4px;   --sp-8: 8px;
+  --sp-12: 12px; --sp-16: 16px; --sp-20: 20px; --sp-24: 24px;
+  --sp-32: 32px; --sp-48: 48px; --sp-64: 64px; --sp-96: 96px;
+
+  /* -- radius: four values ------------------------------------------------ */
+  --r-4: 4px; --r-8: 8px; --r-12: 12px; --r-full: 999px;
+
+  /* Every border in the system is one pixel, so pulling an element up by exactly
+     one border width is a real measurement rather than a gap off the scale. */
+  --hairline: 1px;
+
+  /* -- width -------------------------------------------------------------
+     278 + 32 + 726 = 1036 = 1100 − 2×32. The 726/278 split is 2.6115,
+     0.249% off φ². Prose caps well below its column: 726px runs about 94
+     characters, and 540 runs 70–74. Tables, charts and code use the column. */
+  --page-pad: 32px;
+  --gutter: 32px;
+  --w-rail: 278px;
+  --w-text: 726px;
+  --w-measure: 540px;
+  --shell: 1100px;
+  --shell-read: 808px;
+  --shell-wide: 1320px;
+  --w-steps: 320px;
+  --w-pane: 840px;
+  --w-card: 344px;
+  --w-card-wide: 464px;
+
+  /* -- elevation ---------------------------------------------------------- */
+  --shadow-card: 0 6px 24px rgba(0, 0, 0, 0.08);
+
+  /* -- role: light -------------------------------------------------------- */
+  --bg: var(--ivory);
+  --surface: var(--white);
+  --wash: var(--wash-l);
+  --line: var(--line-l);
+  --line-strong: var(--line-strong-l);
+  --oat: var(--oat-l);
+  --ink: var(--slate);
+  --body: var(--gray-700);
+  --muted: var(--gray-600);
+  --fill: var(--gray-500);
+
+  /* Slot order is fixed and never cycled. Indigo leads so a single-series chart
+     reads as data rather than as branding, and clay sits last because it is also
+     the accent, which stays reserved for emphasis. The order is chosen by
+     measured adjacent separation: this arrangement lifts the worst adjacent
+     tritan pair from 6.6 to 14.9 light and 16.0 dark. */
+  --s1: var(--indigo);
+  --s2: var(--ochre);
+  --s3: var(--plum);
+  --s4: var(--teal);
+  --s5: var(--clay);
+
+  --critical: var(--red);
+  --critical-mark: var(--red);
+  --warning: var(--amber);
+  --warning-mark: var(--amber);
+  --positive: var(--blue);
+  --positive-mark: var(--blue);
+
+  --accent: var(--clay);
+  --accent-mark: var(--clay);
+
+  /* A solid status or accent fill and the label that sits on it. This pair does
+     not follow the text steps: --accent in dark mode is a light orange meant to
+     be read as text, and a white label on it measures 2.71:1. A solid fill is a
+     non-text object, so it needs 3:1 against the page and 4.5:1 for its own
+     label — light mode gets that from the light pigment, dark mode from the mark
+     step. Warning is the one whose label differs by mode, because amber is light
+     enough that white fails on it. */
+  --accent-solid: var(--clay);       --on-accent: var(--white);
+  --critical-solid: var(--red);      --on-critical: var(--white);
+  --warning-solid: var(--amber);     --on-warning: var(--white);
+  --positive-solid: var(--blue);     --on-positive: var(--white);
+
+  /* A tinted surface and its border. Text on one of these is --body. */
+  --critical-soft: var(--red-soft);      --critical-line: var(--red-line);
+  --warning-soft: var(--amber-soft);     --warning-line: var(--amber-line);
+  --positive-soft: var(--blue-soft);     --positive-line: var(--blue-line);
+  --accent-soft: var(--clay-soft);       --accent-line: var(--clay-line);
+  --critical-hover: var(--red-hover);
+  --positive-hover: var(--blue-hover);
+  --accent-hover: var(--clay-hover);
+
+  --zone: rgba(20, 20, 19, 0.025);
+  /* A banded row inside an always-dark panel. It cannot use --zone, which
+     inverts with the mode while the panel does not. */
+  --panel-zone: rgba(250, 249, 245, 0.045);
+
+  /* -- role: the always-dark panel ---------------------------------------
+     A code listing or diff view is one colour in both modes, so the mode-aware
+     roles are wrong inside it: --muted resolves to #605F58 in light mode and
+     would sit at 2.87:1 on this surface. These do not change between modes,
+     which is the whole point of them. */
+  --panel: var(--slate);
+  --panel-raised: var(--gray-700);
+  --panel-ink: var(--paper);
+  --panel-body: var(--gray-250);
+  /* --gray-500 is 2.98:1 on --panel-raised, so the muted tier steps up one:
+     a panel's own de-emphasis tier has to clear AA on the raised surface too,
+     not only on the panel. */
+  --panel-muted: var(--gray-350);
+
+  /* A scrim behind a modal or over an image. Dark in both modes: it darkens
+     whatever it covers rather than following the page. */
+  --scrim: rgba(20, 20, 19, 0.55);
+}
+
+html.dark {
+  /* Different steps, never an inversion. */
+  --bg: var(--slate);
+  --surface: var(--slate-900);
+  --wash: var(--slate-800);
+  --oat: var(--slate-700);
+  --line: var(--slate-600);
+  --line-strong: var(--slate-500);
+  --ink: var(--paper);
+  --body: var(--gray-250);
+  --muted: var(--gray-350);
+  --fill: var(--gray-500);
+
+  --s1: var(--indigo-on-dark);
+  --s2: var(--ochre-on-dark);
+  --s3: var(--plum-on-dark);
+  --s4: var(--teal-on-dark);
+  --s5: var(--clay-mark-on-dark);
+
+  --critical: var(--red-text-on-dark);
+  --critical-mark: var(--red-mark-on-dark);
+  --warning: var(--amber-text-on-dark);
+  --warning-mark: var(--amber-mark-on-dark);
+  --positive: var(--blue-text-on-dark);
+  --positive-mark: var(--blue-mark-on-dark);
+
+  --accent: var(--clay-text-on-dark);
+  --accent-mark: var(--clay-mark-on-dark);
+
+  --accent-solid: var(--clay-mark-on-dark);    --on-accent: var(--white);
+  --critical-solid: var(--red-mark-on-dark);   --on-critical: var(--white);
+  --warning-solid: var(--amber-mark-on-dark);  --on-warning: var(--slate);
+  --positive-solid: var(--blue-mark-on-dark);  --on-positive: var(--white);
+
+  --critical-soft: var(--red-soft-on-dark);   --critical-line: var(--red-line-on-dark);
+  --warning-soft: var(--amber-soft-on-dark);  --warning-line: var(--amber-line-on-dark);
+  --positive-soft: var(--blue-soft-on-dark);  --positive-line: var(--blue-line-on-dark);
+  --accent-soft: var(--clay-soft-on-dark);    --accent-line: var(--clay-line-on-dark);
+  --critical-hover: var(--red-hover-on-dark);
+  --positive-hover: var(--blue-hover-on-dark);
+  --accent-hover: var(--clay-hover-on-dark);
+
+  --zone: rgba(250, 249, 245, 0.03);
+  --shadow-card: 0 6px 24px rgba(0, 0, 0, 0.45);
+
+  /* Light-on-dark reads heavier than dark-on-light at the same weight, and a
+     weight step down is unavailable on two-weight faces. Loosen instead. */
+  --leading-normal: 1.65;
+}
+
+/* Numbers that must align in a column or hold position in a chart use the data
+   face. tabular-nums measures as a no-op on Georgia, Times, Arial and
+   Helvetica, so it is an enhancement and never the mechanism. */
+.tabular {
+  font-family: var(--font-data);
+  font-variant-numeric: tabular-nums;
+}
+
+.label-caps {
+  text-transform: uppercase;
+  letter-spacing: var(--track-caps);
+  font-size: var(--text-meta);
+  font-weight: var(--weight-bold);
+}
+
+/* A band cancels the page padding to span the shell's outer box. Neither
+   width:100vw nor width:100% is correct: inside a split track both resolve to
+   the wrong box, and 100vw ignores the scrollbar. */
+.bleed {
+  margin-inline: calc(-1 * var(--page-pad));
+  padding-inline: var(--page-pad);
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+@media print {
+  /* prefers-color-scheme is not suppressed for print, so a dark-mode reader
+     exports a black page unless the role layer is reset to light here. */
+  :root,
+  html.dark {
+    color-scheme: light;
+    --bg: var(--ivory);
+    --surface: var(--white);
+    --wash: var(--wash-l);
+    --line: var(--line-l);
+    --line-strong: var(--line-strong-l);
+    --ink: var(--slate);
+    --body: var(--gray-700);
+    --muted: var(--gray-600);
+    --s1: var(--indigo);
+    --s2: var(--ochre);
+    --s3: var(--plum);
+    --s4: var(--teal);
+    --s5: var(--clay);
+    --critical: var(--red);
+    --critical-mark: var(--red);
+    --warning: var(--amber);
+    --warning-mark: var(--amber);
+    --positive: var(--blue);
+    --positive-mark: var(--blue);
+    --oat: var(--oat-l);
+    --accent: var(--clay);
+    --accent-mark: var(--clay);
+    --accent-solid: var(--clay);       --on-accent: var(--white);
+    --critical-solid: var(--red);      --on-critical: var(--white);
+    --warning-solid: var(--amber);     --on-warning: var(--white);
+    --positive-solid: var(--blue);     --on-positive: var(--white);
+    --critical-soft: var(--red-soft);      --critical-line: var(--red-line);
+    --warning-soft: var(--amber-soft);     --warning-line: var(--amber-line);
+    --positive-soft: var(--blue-soft);     --positive-line: var(--blue-line);
+    --accent-soft: var(--clay-soft);       --accent-line: var(--clay-line);
+    --critical-hover: var(--red-hover);
+    --positive-hover: var(--blue-hover);
+    --accent-hover: var(--clay-hover);
+    --leading-normal: 1.45;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--body);
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  thead { display: table-header-group; }
+  tr, figure, pre { break-inside: avoid; }
+  h1, h2, h3 { break-after: avoid; }
+  p { orphans: 3; widows: 3; }
+
+  .no-print { display: none; }
+
+  @page { margin: 16mm; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+/* @house-style-tokens:end */
+
+  /* Legacy names this file's own CSS still resolves, pointed at the
+     token block above so there is one source for every value. */
   :root {
-    --ivory: #FAF9F5;
-    --slate: #141413;
-    --clay: #D97757;
-    --oat: #E3DACC;
-    --olive: #788C5D;
-    --rust: #B04A3F;
-    --gray-150: #F0EEE6;
-    --gray-300: #D1CFC5;
-    --gray-500: #87867F;
-    --gray-700: #3D3D3A;
-    --serif: ui-serif, Georgia, 'Times New Roman', serif;
-    --sans: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-    --mono: ui-monospace, 'SF Mono', Menlo, Monaco, monospace;
+    --serif: var(--font-display);
+    --sans: var(--font-prose);
+    --mono: var(--font-data);
   }
 
   * { box-sizing: border-box; margin: 0; padding: 0; }
 
   body {
-    background: var(--ivory);
-    color: var(--gray-700);
+    background: var(--bg);
+    color: var(--body);
     font-family: var(--sans);
-    font-size: 15px;
+    font-size: var(--text-body);
     line-height: 1.65;
-    padding: 48px 24px 80px;
+    padding: var(--sp-48) var(--sp-24) var(--sp-96);
   }
 
   .page {
-    max-width: 1080px;
+    max-width: var(--shell);
     margin: 0 auto;
     display: grid;
     grid-template-columns: minmax(0, 1fr) 280px;
-    gap: 40px;
+    gap: var(--sp-48);
   }
 
   @media (max-width: 960px) {
@@ -48,66 +424,66 @@
   /* ---------- Header ---------- */
   header {
     grid-column: 1 / -1;
-    margin-bottom: 8px;
+    margin-bottom: var(--sp-8);
   }
 
   .repo-line {
     font-family: var(--mono);
-    font-size: 12.5px;
-    color: var(--gray-500);
-    margin-bottom: 10px;
+    font-size: var(--text-meta);
+    color: var(--muted);
+    margin-bottom: var(--sp-12);
   }
 
   h1 {
     font-family: var(--serif);
-    font-weight: 500;
-    font-size: 32px;
+    font-weight: var(--weight-normal);
+    font-size: var(--text-h1);
     line-height: 1.25;
-    color: var(--slate);
-    margin-bottom: 16px;
+    color: var(--ink);
+    margin-bottom: var(--sp-16);
   }
 
   .summary {
-    max-width: 760px;
-    font-size: 15.5px;
+    max-width: var(--w-text);
+    font-size: var(--text-body);
   }
-  .summary code { font-family: var(--mono); font-size: 13px; }
+  .summary code { font-family: var(--mono); font-size: var(--text-meta); }
 
   h2 {
     font-family: var(--serif);
-    font-weight: 500;
-    font-size: 22px;
-    color: var(--slate);
-    margin: 36px 0 16px;
+    font-weight: var(--weight-normal);
+    font-size: var(--text-h3);
+    color: var(--ink);
+    margin: var(--sp-32) 0 var(--sp-16);
   }
 
   /* ---------- Diagram ---------- */
   .diagram-panel {
-    border: 1.5px solid var(--gray-300);
-    border-radius: 12px;
-    background: #fff;
-    padding: 20px;
+    border: 1.5px solid var(--line);
+    border-radius: var(--r-12);
+    background: var(--surface);
+    padding: var(--sp-20);
     overflow-x: auto;
   }
 
   svg.flow { display: block; max-width: 100%; }
   .flow text {
     font-family: var(--mono);
-    font-size: 12px;
-    fill: var(--slate);
+    font-size: var(--text-meta);
+    fill: var(--ink);
   }
-  .flow .sub { font-size: 10px; fill: var(--gray-500); }
-  .flow .box { fill: #fff; stroke: var(--gray-300); stroke-width: 1.5; }
-  .flow .box.hot { fill: rgba(217,119,87,0.10); stroke: var(--clay); }
-  .flow .arrow { stroke: var(--gray-500); stroke-width: 1.5; fill: none; }
+  .flow .sub { font-size: var(--text-micro); fill: var(--fill); }
+  .flow .box { fill: var(--surface); stroke: var(--line); stroke-width: 1.5; }
+  .flow .box.hot { fill: var(--accent-soft); stroke: var(--accent); }
+  .flow .arrow { stroke: var(--fill); stroke-width: 1.5; fill: none; }
 
   /* ---------- Walkthrough ---------- */
   .step {
     display: grid;
     grid-template-columns: 44px 1fr;
-    gap: 18px;
-    padding: 20px 0;
-    border-bottom: 1.5px solid var(--gray-150);
+    gap: var(--sp-20);
+    padding: var(--sp-20) 0;
+    border-bottom: 1.5px solid var(--line);
   }
   .step:last-of-type { border-bottom: none; }
 
@@ -116,66 +492,66 @@
     height: 34px;
     border-radius: 50%;
     background: var(--oat);
-    border: 1.5px solid var(--gray-300);
+    border: 1.5px solid var(--line);
     display: flex;
     align-items: center;
     justify-content: center;
     font-family: var(--mono);
-    font-weight: 600;
-    color: var(--slate);
-    font-size: 14px;
+    font-weight: var(--weight-bold);
+    color: var(--ink);
+    font-size: var(--text-body);
   }
   .step.hot .badge {
-    background: rgba(217,119,87,0.14);
-    border-color: var(--clay);
-    color: var(--clay);
+    background: var(--accent-soft);
+    border-color: var(--accent);
+    color: var(--body);
   }
 
   .step-loc {
     font-family: var(--mono);
-    font-size: 13px;
-    color: var(--slate);
-    margin-bottom: 6px;
+    font-size: var(--text-meta);
+    color: var(--ink);
+    margin-bottom: var(--sp-8);
   }
-  .step-loc .range { color: var(--gray-500); }
+  .step-loc .range { color: var(--muted); }
 
-  .step-body p { margin-bottom: 10px; }
+  .step-body p { margin-bottom: var(--sp-12); }
 
-  details.snippet { margin-top: 6px; }
+  details.snippet { margin-top: var(--sp-8); }
   details.snippet summary {
     list-style: none;
     cursor: pointer;
-    font-size: 12.5px;
-    color: var(--gray-500);
+    font-size: var(--text-meta);
+    color: var(--muted);
     font-family: var(--mono);
     display: inline-flex;
     align-items: center;
-    gap: 6px;
-    padding: 4px 0;
+    gap: var(--sp-8);
+    padding: var(--sp-4) 0;
     user-select: none;
   }
   details.snippet summary::-webkit-details-marker { display: none; }
   details.snippet summary::before {
     content: "▸";
-    font-size: 10px;
+    font-size: var(--text-micro);
     transition: transform 0.15s ease;
   }
   details.snippet[open] summary::before { transform: rotate(90deg); }
 
   pre.code {
-    background: var(--slate);
-    color: #E8E6DC;
+    background: var(--panel);
+    color: var(--panel-ink);
     font-family: var(--mono);
-    font-size: 12.5px;
+    font-size: var(--text-meta);
     line-height: 1.7;
-    border-radius: 8px;
-    padding: 14px 16px;
+    border-radius: var(--r-8);
+    padding: var(--sp-16) var(--sp-16);
     overflow-x: auto;
-    margin-top: 10px;
+    margin-top: var(--sp-12);
   }
-  pre.code .dim { color: var(--gray-500); }
-  pre.code .kw  { color: #C9B98A; }
-  pre.code .str { color: #A8BC8C; }
+  pre.code .dim { color: var(--panel-muted); }
+  pre.code .kw  { color: var(--panel-body); }
+  pre.code .str { color: var(--panel-body); }
 
   /* ---------- Sidebar ---------- */
   aside {
@@ -185,72 +561,121 @@
   }
 
   .panel {
-    border: 1.5px solid var(--gray-300);
-    border-radius: 12px;
-    background: #fff;
-    padding: 18px 20px;
-    margin-bottom: 20px;
+    border: 1.5px solid var(--line);
+    border-radius: var(--r-12);
+    background: var(--surface);
+    padding: var(--sp-20) var(--sp-20);
+    margin-bottom: var(--sp-20);
   }
 
   .panel h3 {
     font-family: var(--sans);
-    font-size: 11px;
-    font-weight: 600;
+    font-size: var(--text-micro);
+    font-weight: var(--weight-bold);
     text-transform: uppercase;
     letter-spacing: 0.08em;
-    color: var(--gray-500);
-    margin-bottom: 12px;
+    color: var(--muted);
+    margin-bottom: var(--sp-12);
   }
 
   .key-files { list-style: none; padding: 0; }
-  .key-files li { margin-bottom: 12px; }
+  .key-files li { margin-bottom: var(--sp-12); }
   .key-files li:last-child { margin-bottom: 0; }
   .key-files .path {
     font-family: var(--mono);
-    font-size: 12px;
-    color: var(--slate);
+    font-size: var(--text-meta);
+    color: var(--ink);
     display: block;
-    margin-bottom: 2px;
+    margin-bottom: var(--sp-2);
     word-break: break-all;
   }
   .key-files .desc {
-    font-size: 12.5px;
-    color: var(--gray-500);
+    font-size: var(--text-meta);
+    color: var(--muted);
     line-height: 1.45;
   }
 
   .gotchas {
-    border: 1.5px solid var(--clay);
-    border-radius: 12px;
-    background: rgba(217,119,87,0.06);
-    padding: 18px 20px;
+    border: 1.5px solid var(--accent);
+    border-radius: var(--r-12);
+    background: var(--accent-soft);
+    padding: var(--sp-20) var(--sp-20);
   }
   .gotchas h3 {
     font-family: var(--sans);
-    font-size: 11px;
-    font-weight: 700;
+    font-size: var(--text-micro);
+    font-weight: var(--weight-bold);
     text-transform: uppercase;
     letter-spacing: 0.08em;
-    color: var(--clay);
-    margin-bottom: 10px;
+    color: var(--accent);
+    margin-bottom: var(--sp-12);
   }
   .gotchas ul { list-style: none; padding: 0; }
   .gotchas li {
     position: relative;
-    padding-left: 16px;
-    font-size: 13px;
-    margin-bottom: 8px;
+    padding-left: var(--sp-16);
+    font-size: var(--text-body);
+    margin-bottom: var(--sp-8);
   }
   .gotchas li::before {
     content: "";
     position: absolute;
     left: 0; top: 8px;
     width: 5px; height: 5px;
-    background: var(--clay);
-    border-radius: 2px;
+    background: var(--accent);
+    border-radius: var(--r-4);
   }
-  .gotchas code { font-family: var(--mono); font-size: 11.5px; }
+  .gotchas code { font-family: var(--mono); font-size: var(--text-meta); }
 </style>
+<!-- @house-style-theme:begin — generated from house-style-theme.html, do not hand-edit -->
+<script>
+  /* The class is set before the body paints, so a dark-mode reader never sees a
+     light flash. localStorage wins over the OS preference because a reader who
+     has chosen on this page has chosen more specifically. */
+  (function () {
+    const saved = localStorage.getItem('theme');
+    const dark = saved ? saved === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+    document.documentElement.classList.toggle('dark', dark);
+
+    addEventListener('DOMContentLoaded', function () {
+      const button = document.createElement('button');
+      button.id = 'themeToggle';
+      button.type = 'button';
+      button.textContent = 'Theme';
+      button.setAttribute('aria-label', 'Switch between light and dark');
+      button.addEventListener('click', function () {
+        const next = !document.documentElement.classList.contains('dark');
+        document.documentElement.classList.toggle('dark', next);
+        localStorage.setItem('theme', next ? 'dark' : 'light');
+      });
+      document.body.appendChild(button);
+    });
+  })();
+</script>
+<style>
+  /* Fixed rather than in the flow: this fragment is shared across documents whose
+     headers all differ, and a fixed corner is the one position every layout has. */
+  #themeToggle {
+    position: fixed;
+    top: var(--sp-16);
+    right: var(--sp-16);
+    z-index: 50;
+    min-height: var(--sp-24);
+    padding: var(--sp-4) var(--sp-12);
+    font-family: var(--font-data);
+    font-size: var(--text-meta-data);
+    text-transform: uppercase;
+    letter-spacing: var(--track-caps);
+    color: var(--muted);
+    background: var(--surface);
+    border: var(--hairline) solid var(--line);
+    border-radius: var(--r-full);
+    cursor: pointer;
+  }
+  #themeToggle:hover { color: var(--ink); border-color: var(--line-strong); }
+  @media print { #themeToggle { display: none; } }
+</style>
+<!-- @house-style-theme:end -->
 </head>
 <body>
 <div class="page">
@@ -264,12 +689,12 @@
   </header>
 
   <main>
-    <h2 style="margin-top:0">Request path</h2>
+    <h2 style="margin-top: 0">Request path</h2>
     <div class="diagram-panel">
       <svg class="flow" viewBox="0 0 720 280" width="720" height="280" role="img" aria-label="Authentication flow diagram">
         <defs>
           <marker id="arrowHead" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-            <path d="M 0 0 L 10 5 L 0 10 z" fill="#87867F"></path>
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--fill)"></path>
           </marker>
         </defs>
 
@@ -320,7 +745,7 @@
       <div class="badge">1</div>
       <div class="step-body">
         <div class="step-loc">src/app/providers/AuthProvider.tsx<span class="range"> :22-48</span></div>
-        <p>On mount, the React provider issues a <code style="font-family:var(--mono);font-size:12.5px">GET /api/session</code> with <code style="font-family:var(--mono);font-size:12.5px">credentials: 'include'</code> so the <code style="font-family:var(--mono);font-size:12.5px">fw_sid</code> cookie rides along. The response either hydrates <code style="font-family:var(--mono);font-size:12.5px">currentUser</code> into context or leaves it <code style="font-family:var(--mono);font-size:12.5px">null</code>, which the router treats as "show the sign-in screen".</p>
+        <p>On mount, the React provider issues a <code style="font-family:var(--mono);font-size: var(--text-meta)">GET /api/session</code> with <code style="font-family:var(--mono);font-size: var(--text-meta)">credentials: 'include'</code> so the <code style="font-family:var(--mono);font-size: var(--text-meta)">fw_sid</code> cookie rides along. The response either hydrates <code style="font-family:var(--mono);font-size: var(--text-meta)">currentUser</code> into context or leaves it <code style="font-family:var(--mono);font-size: var(--text-meta)">null</code>, which the router treats as "show the sign-in screen".</p>
         <details class="snippet">
           <summary>show source</summary>
 <pre class="code"><span class="dim">// src/app/providers/AuthProvider.tsx</span>
@@ -344,7 +769,7 @@
       <div class="badge">2</div>
       <div class="step-body">
         <div class="step-loc">src/server/routes/session.ts<span class="range"> :9-27</span></div>
-        <p>The route itself is thin: it just returns whatever <code style="font-family:var(--mono);font-size:12.5px">req.ctx.session</code> the middleware attached. If the middleware short-circuited with a 401, this handler never runs — so there's no auth logic duplicated here.</p>
+        <p>The route itself is thin: it just returns whatever <code style="font-family:var(--mono);font-size: var(--text-meta)">req.ctx.session</code> the middleware attached. If the middleware short-circuited with a 401, this handler never runs — so there's no auth logic duplicated here.</p>
         <details class="snippet">
           <summary>show source</summary>
 <pre class="code"><span class="dim">// src/server/routes/session.ts</span>
@@ -366,7 +791,7 @@ router.get(<span class="str">'/session'</span>, verifyToken, (req, res) =&gt; {
       <div class="badge">3</div>
       <div class="step-body">
         <div class="step-loc">src/middleware/auth.ts<span class="range"> :14-31</span></div>
-        <p>This is the trust boundary. <code style="font-family:var(--mono);font-size:12.5px">verifyToken</code> reads the signed <code style="font-family:var(--mono);font-size:12.5px">fw_sid</code> cookie, asks <code style="font-family:var(--mono);font-size:12.5px">SessionStore</code> to resolve it, and either populates <code style="font-family:var(--mono);font-size:12.5px">req.ctx.session</code> or responds 401. Every protected route in the app is mounted behind this function, so changing its behaviour changes auth globally.</p>
+        <p>This is the trust boundary. <code style="font-family:var(--mono);font-size: var(--text-meta)">verifyToken</code> reads the signed <code style="font-family:var(--mono);font-size: var(--text-meta)">fw_sid</code> cookie, asks <code style="font-family:var(--mono);font-size: var(--text-meta)">SessionStore</code> to resolve it, and either populates <code style="font-family:var(--mono);font-size: var(--text-meta)">req.ctx.session</code> or responds 401. Every protected route in the app is mounted behind this function, so changing its behaviour changes auth globally.</p>
         <details class="snippet" open>
           <summary>show source</summary>
 <pre class="code"><span class="dim">// src/middleware/auth.ts</span>
@@ -391,7 +816,7 @@ router.get(<span class="str">'/session'</span>, verifyToken, (req, res) =&gt; {
       <div class="badge">4</div>
       <div class="step-body">
         <div class="step-loc">src/lib/sessionStore.ts<span class="range"> :8-52</span></div>
-        <p><code style="font-family:var(--mono);font-size:12.5px">SessionStore</code> is a small read-through cache: it checks an in-process LRU first, then falls back to Postgres. Writes (<code style="font-family:var(--mono);font-size:12.5px">create</code>, <code style="font-family:var(--mono);font-size:12.5px">revoke</code>) always go straight to the DB and invalidate the cache entry so other workers don't serve a stale session.</p>
+        <p><code style="font-family:var(--mono);font-size: var(--text-meta)">SessionStore</code> is a small read-through cache: it checks an in-process LRU first, then falls back to Postgres. Writes (<code style="font-family:var(--mono);font-size: var(--text-meta)">create</code>, <code style="font-family:var(--mono);font-size: var(--text-meta)">revoke</code>) always go straight to the DB and invalidate the cache entry so other workers don't serve a stale session.</p>
         <details class="snippet">
           <summary>show source</summary>
 <pre class="code"><span class="dim">// src/lib/sessionStore.ts</span>
@@ -416,7 +841,7 @@ router.get(<span class="str">'/session'</span>, verifyToken, (req, res) =&gt; {
       <div class="badge">5</div>
       <div class="step-body">
         <div class="step-loc">db/migrations/004_sessions.sql<span class="range"> :1-18</span></div>
-        <p>The <code style="font-family:var(--mono);font-size:12.5px">sessions</code> table is keyed on a random 32-byte id (the cookie value) with a covering index on <code style="font-family:var(--mono);font-size:12.5px">user_id</code> for "sign out everywhere". Expiry is enforced both here (<code style="font-family:var(--mono);font-size:12.5px">expires_at</code>) and again in the middleware as defence in depth.</p>
+        <p>The <code style="font-family:var(--mono);font-size: var(--text-meta)">sessions</code> table is keyed on a random 32-byte id (the cookie value) with a covering index on <code style="font-family:var(--mono);font-size: var(--text-meta)">user_id</code> for "sign out everywhere". Expiry is enforced both here (<code style="font-family:var(--mono);font-size: var(--text-meta)">expires_at</code>) and again in the middleware as defence in depth.</p>
         <details class="snippet">
           <summary>show source</summary>
 <pre class="code"><span class="dim">-- db/migrations/004_sessions.sql</span>

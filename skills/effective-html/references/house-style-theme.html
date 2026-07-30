@@ -1,0 +1,49 @@
+<!-- @house-style-theme:begin — generated from house-style-theme.html, do not hand-edit -->
+<script>
+  /* The class is set before the body paints, so a dark-mode reader never sees a
+     light flash. localStorage wins over the OS preference because a reader who
+     has chosen on this page has chosen more specifically. */
+  (function () {
+    const saved = localStorage.getItem('theme');
+    const dark = saved ? saved === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+    document.documentElement.classList.toggle('dark', dark);
+
+    addEventListener('DOMContentLoaded', function () {
+      const button = document.createElement('button');
+      button.id = 'themeToggle';
+      button.type = 'button';
+      button.textContent = 'Theme';
+      button.setAttribute('aria-label', 'Switch between light and dark');
+      button.addEventListener('click', function () {
+        const next = !document.documentElement.classList.contains('dark');
+        document.documentElement.classList.toggle('dark', next);
+        localStorage.setItem('theme', next ? 'dark' : 'light');
+      });
+      document.body.appendChild(button);
+    });
+  })();
+</script>
+<style>
+  /* Fixed rather than in the flow: this fragment is shared across documents whose
+     headers all differ, and a fixed corner is the one position every layout has. */
+  #themeToggle {
+    position: fixed;
+    top: var(--sp-16);
+    right: var(--sp-16);
+    z-index: 50;
+    min-height: var(--sp-24);
+    padding: var(--sp-4) var(--sp-12);
+    font-family: var(--font-data);
+    font-size: var(--text-meta-data);
+    text-transform: uppercase;
+    letter-spacing: var(--track-caps);
+    color: var(--muted);
+    background: var(--surface);
+    border: var(--hairline) solid var(--line);
+    border-radius: var(--r-full);
+    cursor: pointer;
+  }
+  #themeToggle:hover { color: var(--ink); border-color: var(--line-strong); }
+  @media print { #themeToggle { display: none; } }
+</style>
+<!-- @house-style-theme:end -->
