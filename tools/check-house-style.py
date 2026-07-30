@@ -444,6 +444,10 @@ def rule_dark_mode(path: Path, text: str) -> list[Violation]:
             )
         )
     class_selector = bool(re.search(r"(?:html|:root|body)\s*\.dark\b", text))
+    # Reachability only. Whether the setter runs before the first paint or inside a
+    # click handler is a question about when the script executes, which reading the
+    # source cannot answer without interpreting it — that half stays an instruction
+    # in SKILL.md rather than a rule that would pass on the wrong shape.
     if class_selector and not RE_DARK_APPLY.search(text):
         out.append(
             Violation(
@@ -451,7 +455,7 @@ def rule_dark_mode(path: Path, text: str) -> list[Violation]:
                 1,
                 "dark-mode",
                 "dark styles are keyed on a class that nothing sets: needs a script "
-                "putting 'dark' on documentElement before the body paints",
+                "putting 'dark' on documentElement",
             )
         )
     return out
