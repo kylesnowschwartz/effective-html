@@ -257,15 +257,23 @@
   }
   .ctl { transition: opacity .35s var(--ease); }
   .ctl.pending { opacity: 0.35; }
-  .ctl label {
+  /* Captions are selected by role, not by tag: the checkbox's own wrapper is
+     also a label and must not pick up the uppercase caption treatment. */
+  .ctl label[for], .ctl .ctl-head {
     display: flex; justify-content: space-between; align-items: baseline; gap: var(--sp-8);
     font-family: var(--font-data); font-size: var(--text-micro); letter-spacing: var(--track-caps);
     text-transform: uppercase; color: var(--muted); margin-bottom: var(--sp-8);
   }
-  .ctl label b { font-size: var(--text-meta-data); color: var(--ink); letter-spacing: 0; text-transform: none; }
+  .ctl label[for] b { font-size: var(--text-meta-data); color: var(--ink); letter-spacing: 0; text-transform: none; }
   .ctl input[type=range] { width: 100%; accent-color: var(--accent); }
-  .ctl .toggle { display: flex; align-items: center; gap: var(--sp-8); font-size: var(--text-meta); color: var(--body); }
-  .ctl .toggle input { accent-color: var(--accent); width: 15px; height: 15px; }
+  /* The checkbox wraps in its own label so the text is part of the hit target.
+     A bare 16px square is under the 24px AA floor of WCAG 2.2 SC 2.5.8; the
+     label's box clears it. */
+  .ctl .toggle {
+    display: flex; align-items: center; gap: var(--sp-8); min-height: var(--sp-24);
+    font-size: var(--text-meta); color: var(--body); cursor: pointer;
+  }
+  .ctl .toggle input { accent-color: var(--accent); width: var(--sp-16); height: var(--sp-16); }
   .ctl .hint { font-size: var(--text-meta); color: var(--muted); margin-top: var(--sp-4); }
 
   /* ── data table (identity never by colour alone) ── */
@@ -468,8 +476,8 @@
           <div class="hint">Smallest order the supplier will ship in one week.</div>
         </div>
         <div class="ctl pending" data-from="5">
-          <label for="cap">Warehouse cap</label>
-          <div class="toggle"><input type="checkbox" id="cap" checked> <span>Trim orders above 320 units</span></div>
+          <span class="ctl-head">Warehouse cap</span>
+          <label class="toggle"><input type="checkbox" id="cap" checked> <span>Trim orders above 320 units</span></label>
           <div class="hint">Off shows the plan the rules produce with unlimited shelf space.</div>
         </div>
       </div>
