@@ -15,7 +15,7 @@
   --ivory: #FAF9F5;
   --white: #FFFFFF;
   --wash-l: #F0EEE6;
-  --oat: #E3DACC;
+  --oat-l: #E3DACC;
   --line-l: #D1CFC5;
   --line-strong-l: #BBB7AC;
   --gray-500: #87867F;   /* borders and fills only: 3.47:1 as text on ivory */
@@ -72,6 +72,13 @@
   --clay-soft: #ecdfd5;  --clay-soft-on-dark: #452b1e;
   --clay-line: #bb8260;  --clay-line-on-dark: #a54606;
 
+  /* A solid button needs a hover it cannot get from the base step. One fixed
+     lightness move at the same hue and chroma: darker on a light page, lighter
+     on a dark one. White text stays above 8.5:1 on every one of them. */
+  --clay-hover: #812c00;  --clay-hover-on-dark: #ff955d;
+  --red-hover: #7e0008;   --red-hover-on-dark: #ff9373;
+  --blue-hover: #11409d;  --blue-hover-on-dark: #90ccff;
+
   /* -- reference: families ------------------------------------------------
      ui-serif and ui-monospace resolve only in Safari; everywhere else they
      fall through to the next slot, so the named faces do the real work.
@@ -126,6 +133,10 @@
   /* -- radius: four values ------------------------------------------------ */
   --r-4: 4px; --r-8: 8px; --r-12: 12px; --r-full: 999px;
 
+  /* Every border in the system is one pixel, so pulling an element up by exactly
+     one border width is a real measurement rather than a gap off the scale. */
+  --hairline: 1px;
+
   /* -- width -------------------------------------------------------------
      278 + 32 + 726 = 1036 = 1100 − 2×32. The 726/278 split is 2.6115,
      0.249% off φ². Prose caps well below its column: 726px runs about 94
@@ -152,6 +163,7 @@
   --wash: var(--wash-l);
   --line: var(--line-l);
   --line-strong: var(--line-strong-l);
+  --oat: var(--oat-l);
   --ink: var(--slate);
   --body: var(--gray-700);
   --muted: var(--gray-600);
@@ -178,11 +190,26 @@
   --accent: var(--clay);
   --accent-mark: var(--clay);
 
+  /* A solid status or accent fill and the label that sits on it. This pair does
+     not follow the text steps: --accent in dark mode is a light orange meant to
+     be read as text, and a white label on it measures 2.71:1. A solid fill is a
+     non-text object, so it needs 3:1 against the page and 4.5:1 for its own
+     label — light mode gets that from the light pigment, dark mode from the mark
+     step. Warning is the one whose label differs by mode, because amber is light
+     enough that white fails on it. */
+  --accent-solid: var(--clay);       --on-accent: var(--white);
+  --critical-solid: var(--red);      --on-critical: var(--white);
+  --warning-solid: var(--amber);     --on-warning: var(--white);
+  --positive-solid: var(--blue);     --on-positive: var(--white);
+
   /* A tinted surface and its border. Text on one of these is --body. */
   --critical-soft: var(--red-soft);      --critical-line: var(--red-line);
   --warning-soft: var(--amber-soft);     --warning-line: var(--amber-line);
   --positive-soft: var(--blue-soft);     --positive-line: var(--blue-line);
   --accent-soft: var(--clay-soft);       --accent-line: var(--clay-line);
+  --critical-hover: var(--red-hover);
+  --positive-hover: var(--blue-hover);
+  --accent-hover: var(--clay-hover);
 
   --zone: rgba(20, 20, 19, 0.025);
   /* A banded row inside an always-dark panel. It cannot use --zone, which
@@ -198,7 +225,10 @@
   --panel-raised: var(--gray-700);
   --panel-ink: var(--paper);
   --panel-body: var(--gray-250);
-  --panel-muted: var(--gray-500);
+  /* --gray-500 is 2.98:1 on --panel-raised, so the muted tier steps up one:
+     a panel's own de-emphasis tier has to clear AA on the raised surface too,
+     not only on the panel. */
+  --panel-muted: var(--gray-350);
 
   /* A scrim behind a modal or over an image. Dark in both modes: it darkens
      whatever it covers rather than following the page. */
@@ -210,6 +240,7 @@ html.dark {
   --bg: var(--slate);
   --surface: var(--slate-900);
   --wash: var(--slate-800);
+  --oat: var(--slate-700);
   --line: var(--slate-600);
   --line-strong: var(--slate-500);
   --ink: var(--paper);
@@ -233,10 +264,18 @@ html.dark {
   --accent: var(--clay-text-on-dark);
   --accent-mark: var(--clay-mark-on-dark);
 
+  --accent-solid: var(--clay-mark-on-dark);    --on-accent: var(--white);
+  --critical-solid: var(--red-mark-on-dark);   --on-critical: var(--white);
+  --warning-solid: var(--amber-mark-on-dark);  --on-warning: var(--slate);
+  --positive-solid: var(--blue-mark-on-dark);  --on-positive: var(--white);
+
   --critical-soft: var(--red-soft-on-dark);   --critical-line: var(--red-line-on-dark);
   --warning-soft: var(--amber-soft-on-dark);  --warning-line: var(--amber-line-on-dark);
   --positive-soft: var(--blue-soft-on-dark);  --positive-line: var(--blue-line-on-dark);
   --accent-soft: var(--clay-soft-on-dark);    --accent-line: var(--clay-line-on-dark);
+  --critical-hover: var(--red-hover-on-dark);
+  --positive-hover: var(--blue-hover-on-dark);
+  --accent-hover: var(--clay-hover-on-dark);
 
   --zone: rgba(250, 249, 245, 0.03);
   --shadow-card: 0 6px 24px rgba(0, 0, 0, 0.45);
@@ -299,12 +338,20 @@ html {
     --warning-mark: var(--amber);
     --positive: var(--blue);
     --positive-mark: var(--blue);
+    --oat: var(--oat-l);
     --accent: var(--clay);
     --accent-mark: var(--clay);
+    --accent-solid: var(--clay);       --on-accent: var(--white);
+    --critical-solid: var(--red);      --on-critical: var(--white);
+    --warning-solid: var(--amber);     --on-warning: var(--white);
+    --positive-solid: var(--blue);     --on-positive: var(--white);
     --critical-soft: var(--red-soft);      --critical-line: var(--red-line);
     --warning-soft: var(--amber-soft);     --warning-line: var(--amber-line);
     --positive-soft: var(--blue-soft);     --positive-line: var(--blue-line);
     --accent-soft: var(--clay-soft);       --accent-line: var(--clay-line);
+    --critical-hover: var(--red-hover);
+    --positive-hover: var(--blue-hover);
+    --accent-hover: var(--clay-hover);
     --leading-normal: 1.45;
   }
 

@@ -6,72 +6,447 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Background jobs — header illustrations</title>
 <style>
-  :root {
-    --ivory:   #FAF9F5;
-    --slate:   #141413;
-    --clay:    #D97757;
-    --oat:     #E3DACC;
-    --olive:   #788C5D;
-    --gray-150:#F0EEE6;
-    --gray-300:#D1CFC5;
-    --gray-500:#87867F;
-    --gray-700:#3D3D3A;
+/* @house-style-tokens:begin — generated from house-style-tokens.css, do not hand-edit */
+/* ============================================================================
+   House style tokens — the authority for every value in a generated document.
+   Inline this block. It is the whole design system: colour, type, space,
+   width, radius, and print. A value that is not in here does not exist.
 
-    --serif: ui-serif, Georgia, "Times New Roman", serif;
-    --sans:  system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-    --mono:  ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+   Two layers throughout. The reference layer names pigments and raw steps and
+   holds every literal. The role layer names jobs and selects from the
+   reference layer. Only the reference layer changes when the palette changes,
+   and dark mode selects different steps rather than inverting.
+   ============================================================================ */
+
+:root {
+  /* -- reference: neutrals ------------------------------------------------ */
+  --ivory: #FAF9F5;
+  --white: #FFFFFF;
+  --wash-l: #F0EEE6;
+  --oat-l: #E3DACC;
+  --line-l: #D1CFC5;
+  --line-strong-l: #BBB7AC;
+  --gray-500: #87867F;   /* borders and fills only: 3.47:1 as text on ivory */
+  --gray-600: #605F58;
+  --gray-700: #3D3D3A;
+  --slate: #141413;
+  --slate-900: #1E1D1A;
+  --slate-800: #282721;
+  --slate-700: #333229;
+  --slate-600: #3E3D38;
+  --slate-500: #51504A;
+  --gray-350: #B4B3AB;
+  --gray-250: #CECDC5;
+  --paper: #F2F0EA;
+
+  /* -- reference: five series hues, one step per mode ---------------------
+     Each set passes the palette validator under --pairs all on its own
+     surface. Series colours are marks, never text: text wears text tokens. */
+  --clay: #994210;      --clay-text-on-dark: #f17d44;  --clay-mark-on-dark: #bf4f04;
+  --indigo: #5168b9;    --indigo-on-dark: #5c77df;
+  --teal: #00a1a2;      --teal-on-dark: #009ea0;
+  --ochre: #8d7f00;     --ochre-on-dark: #a79700;
+  --plum: #733378;      --plum-on-dark: #98449e;
+
+  /* -- reference: status, re-stepped per mode and per job -----------------
+     Light needs one step. Dark needs two: the lightness band governs whether
+     marks read as equal-weight siblings, which text does not need to do, and
+     no single step satisfies both. Deriving the mark step by maximising
+     chroma fails — it puts red and amber at the same lightness, the one cue
+     deuteranopia leaves intact, collapsing separation to ΔE 0.5. */
+  --red: #971a20;       --red-text-on-dark: #f87b5c;   --red-mark-on-dark: #ca3403;
+  --amber: #896a00;     --amber-text-on-dark: #f6c330; --amber-mark-on-dark: #b78d00;
+  --blue: #2757b6;      --blue-text-on-dark: #79b4ff;  --blue-mark-on-dark: #026cd1;
+
+  /* -- reference: tinted surfaces and their borders -----------------------
+     A tint is an opaque step rather than an rgba, so its contrast is a fact
+     the checker can read instead of something that depends on whatever sits
+     behind it. One alpha per mode against the page — 0.14 light, 0.22 dark —
+     for the fill, and whatever alpha reaches 3:1 for the border, since a
+     border is a non-text object. The fill is derived from the mode's text
+     step and the border from its mark step.
+
+     Text on a tint is --body, never the role colour. Solving for role-coloured
+     text puts warning's light alpha at 0.02, which is no tint at all: warning
+     on ivory is 4.83:1 and any tint spends the margin. The role still reads —
+     it colours the border and the icon, which is what the status rule already
+     requires of it. */
+  --red-soft: #ecdad7;   --red-soft-on-dark: #462b23;
+  --red-line: #bf7375;   --red-line-on-dark: #b83105;
+  --amber-soft: #eae5d3; --amber-soft-on-dark: #463a19;
+  --amber-line: #a58e3d; --amber-line-on-dark: #7e6307;
+  --blue-soft: #dce2ec;  --blue-soft-on-dark: #2a3747;
+  --blue-line: #7190cc;  --blue-line-on-dark: #0463be;
+  --clay-soft: #ecdfd5;  --clay-soft-on-dark: #452b1e;
+  --clay-line: #bb8260;  --clay-line-on-dark: #a54606;
+
+  /* A solid button needs a hover it cannot get from the base step. One fixed
+     lightness move at the same hue and chroma: darker on a light page, lighter
+     on a dark one. White text stays above 8.5:1 on every one of them. */
+  --clay-hover: #812c00;  --clay-hover-on-dark: #ff955d;
+  --red-hover: #7e0008;   --red-hover-on-dark: #ff9373;
+  --blue-hover: #11409d;  --blue-hover-on-dark: #90ccff;
+
+  /* -- reference: families ------------------------------------------------
+     ui-serif and ui-monospace resolve only in Safari; everywhere else they
+     fall through to the next slot, so the named faces do the real work.
+     Liberation, Noto and DejaVu are the Linux slots — without them none of
+     these stacks resolves to an intended face there. */
+  --font-prose: system-ui, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-display: ui-serif, Georgia, "Liberation Serif", "Noto Serif",
+                  "DejaVu Serif", "Times New Roman", serif;
+  --font-data: ui-monospace, Menlo, Consolas, "Liberation Mono",
+               "DejaVu Sans Mono", monospace;
+
+  /* -- type: nine steps, named by job so a size is chosen by meaning ------
+     Calibrated for --font-prose. Two exceptions and no others: serif body
+     text uses --text-body-display, mono metadata uses --text-meta-data. */
+  --text-micro: 0.6875rem;   /* 11px — one glanced token, never compared */
+  --text-meta: 0.8125rem;    /* 13px — UI, metadata, table cells, chart labels */
+  --text-body: 1rem;         /* 16px — prose floor */
+  --text-lead: 1.125rem;     /* 18px */
+  --text-h4: 1.3125rem;      /* 21px */
+  --text-h3: 1.5rem;         /* 24px */
+  --text-h2: 1.875rem;       /* 30px */
+  --text-h1: 2.375rem;       /* 38px */
+  --text-display: 3.25rem;   /* 52px — one per document */
+
+  /* Equal apparent size across families: x-height/em is 0.508 prose,
+     0.481 display, 0.547 data. */
+  --text-body-display: 1.125rem;  /* 18px serif reads as 16px sans */
+  --text-meta-data: 0.75rem;      /* 12px mono reads as 13px sans */
+
+  /* -- weight: two values --------------------------------------------------
+     Georgia renders 400 and 500 identically and 600 identically to 700;
+     Segoe UI has no 500 face; DejaVu and Liberation have two weights. For
+     emphasis between normal and bold, change family or size. */
+  --weight-normal: 400;
+  --weight-bold: 700;
+
+  /* -- leading and tracking ----------------------------------------------- */
+  --leading-tight: 1.15;   /* 30px and up */
+  --leading-snug: 1.35;    /* headings 18–24px, table cells */
+  --leading-normal: 1.55;  /* body prose */
+  --leading-loose: 1.7;    /* prose at --text-meta */
+  --track-display: -0.02em;
+  --track-normal: 0;
+  --track-caps: 0.08em;    /* uppercase labels: required, not decorative */
+  --track-micro: 0.04em;   /* 11–13px mono, to offset crowding */
+
+  /* -- space: twelve rungs on a 4pt grid ---------------------------------- */
+  --sp-0: 0px;   --sp-2: 2px;   --sp-4: 4px;   --sp-8: 8px;
+  --sp-12: 12px; --sp-16: 16px; --sp-20: 20px; --sp-24: 24px;
+  --sp-32: 32px; --sp-48: 48px; --sp-64: 64px; --sp-96: 96px;
+
+  /* -- radius: four values ------------------------------------------------ */
+  --r-4: 4px; --r-8: 8px; --r-12: 12px; --r-full: 999px;
+
+  /* Every border in the system is one pixel, so pulling an element up by exactly
+     one border width is a real measurement rather than a gap off the scale. */
+  --hairline: 1px;
+
+  /* -- width -------------------------------------------------------------
+     278 + 32 + 726 = 1036 = 1100 − 2×32. The 726/278 split is 2.6115,
+     0.249% off φ². Prose caps well below its column: 726px runs about 94
+     characters, and 540 runs 70–74. Tables, charts and code use the column. */
+  --page-pad: 32px;
+  --gutter: 32px;
+  --w-rail: 278px;
+  --w-text: 726px;
+  --w-measure: 540px;
+  --shell: 1100px;
+  --shell-read: 808px;
+  --shell-wide: 1320px;
+  --w-steps: 320px;
+  --w-pane: 840px;
+  --w-card: 344px;
+  --w-card-wide: 464px;
+
+  /* -- elevation ---------------------------------------------------------- */
+  --shadow-card: 0 6px 24px rgba(0, 0, 0, 0.08);
+
+  /* -- role: light -------------------------------------------------------- */
+  --bg: var(--ivory);
+  --surface: var(--white);
+  --wash: var(--wash-l);
+  --line: var(--line-l);
+  --line-strong: var(--line-strong-l);
+  --oat: var(--oat-l);
+  --ink: var(--slate);
+  --body: var(--gray-700);
+  --muted: var(--gray-600);
+  --fill: var(--gray-500);
+
+  /* Slot order is fixed and never cycled. Indigo leads so a single-series chart
+     reads as data rather than as branding, and clay sits last because it is also
+     the accent, which stays reserved for emphasis. The order is chosen by
+     measured adjacent separation: this arrangement lifts the worst adjacent
+     tritan pair from 6.6 to 14.9 light and 16.0 dark. */
+  --s1: var(--indigo);
+  --s2: var(--ochre);
+  --s3: var(--plum);
+  --s4: var(--teal);
+  --s5: var(--clay);
+
+  --critical: var(--red);
+  --critical-mark: var(--red);
+  --warning: var(--amber);
+  --warning-mark: var(--amber);
+  --positive: var(--blue);
+  --positive-mark: var(--blue);
+
+  --accent: var(--clay);
+  --accent-mark: var(--clay);
+
+  /* A solid status or accent fill and the label that sits on it. This pair does
+     not follow the text steps: --accent in dark mode is a light orange meant to
+     be read as text, and a white label on it measures 2.71:1. A solid fill is a
+     non-text object, so it needs 3:1 against the page and 4.5:1 for its own
+     label — light mode gets that from the light pigment, dark mode from the mark
+     step. Warning is the one whose label differs by mode, because amber is light
+     enough that white fails on it. */
+  --accent-solid: var(--clay);       --on-accent: var(--white);
+  --critical-solid: var(--red);      --on-critical: var(--white);
+  --warning-solid: var(--amber);     --on-warning: var(--white);
+  --positive-solid: var(--blue);     --on-positive: var(--white);
+
+  /* A tinted surface and its border. Text on one of these is --body. */
+  --critical-soft: var(--red-soft);      --critical-line: var(--red-line);
+  --warning-soft: var(--amber-soft);     --warning-line: var(--amber-line);
+  --positive-soft: var(--blue-soft);     --positive-line: var(--blue-line);
+  --accent-soft: var(--clay-soft);       --accent-line: var(--clay-line);
+  --critical-hover: var(--red-hover);
+  --positive-hover: var(--blue-hover);
+  --accent-hover: var(--clay-hover);
+
+  --zone: rgba(20, 20, 19, 0.025);
+  /* A banded row inside an always-dark panel. It cannot use --zone, which
+     inverts with the mode while the panel does not. */
+  --panel-zone: rgba(250, 249, 245, 0.045);
+
+  /* -- role: the always-dark panel ---------------------------------------
+     A code listing or diff view is one colour in both modes, so the mode-aware
+     roles are wrong inside it: --muted resolves to #605F58 in light mode and
+     would sit at 2.87:1 on this surface. These do not change between modes,
+     which is the whole point of them. */
+  --panel: var(--slate);
+  --panel-raised: var(--gray-700);
+  --panel-ink: var(--paper);
+  --panel-body: var(--gray-250);
+  /* --gray-500 is 2.98:1 on --panel-raised, so the muted tier steps up one:
+     a panel's own de-emphasis tier has to clear AA on the raised surface too,
+     not only on the panel. */
+  --panel-muted: var(--gray-350);
+
+  /* A scrim behind a modal or over an image. Dark in both modes: it darkens
+     whatever it covers rather than following the page. */
+  --scrim: rgba(20, 20, 19, 0.55);
+}
+
+html.dark {
+  /* Different steps, never an inversion. */
+  --bg: var(--slate);
+  --surface: var(--slate-900);
+  --wash: var(--slate-800);
+  --oat: var(--slate-700);
+  --line: var(--slate-600);
+  --line-strong: var(--slate-500);
+  --ink: var(--paper);
+  --body: var(--gray-250);
+  --muted: var(--gray-350);
+  --fill: var(--gray-500);
+
+  --s1: var(--indigo-on-dark);
+  --s2: var(--ochre-on-dark);
+  --s3: var(--plum-on-dark);
+  --s4: var(--teal-on-dark);
+  --s5: var(--clay-mark-on-dark);
+
+  --critical: var(--red-text-on-dark);
+  --critical-mark: var(--red-mark-on-dark);
+  --warning: var(--amber-text-on-dark);
+  --warning-mark: var(--amber-mark-on-dark);
+  --positive: var(--blue-text-on-dark);
+  --positive-mark: var(--blue-mark-on-dark);
+
+  --accent: var(--clay-text-on-dark);
+  --accent-mark: var(--clay-mark-on-dark);
+
+  --accent-solid: var(--clay-mark-on-dark);    --on-accent: var(--white);
+  --critical-solid: var(--red-mark-on-dark);   --on-critical: var(--white);
+  --warning-solid: var(--amber-mark-on-dark);  --on-warning: var(--slate);
+  --positive-solid: var(--blue-mark-on-dark);  --on-positive: var(--white);
+
+  --critical-soft: var(--red-soft-on-dark);   --critical-line: var(--red-line-on-dark);
+  --warning-soft: var(--amber-soft-on-dark);  --warning-line: var(--amber-line-on-dark);
+  --positive-soft: var(--blue-soft-on-dark);  --positive-line: var(--blue-line-on-dark);
+  --accent-soft: var(--clay-soft-on-dark);    --accent-line: var(--clay-line-on-dark);
+  --critical-hover: var(--red-hover-on-dark);
+  --positive-hover: var(--blue-hover-on-dark);
+  --accent-hover: var(--clay-hover-on-dark);
+
+  --zone: rgba(250, 249, 245, 0.03);
+  --shadow-card: 0 6px 24px rgba(0, 0, 0, 0.45);
+
+  /* Light-on-dark reads heavier than dark-on-light at the same weight, and a
+     weight step down is unavailable on two-weight faces. Loosen instead. */
+  --leading-normal: 1.65;
+}
+
+/* Numbers that must align in a column or hold position in a chart use the data
+   face. tabular-nums measures as a no-op on Georgia, Times, Arial and
+   Helvetica, so it is an enhancement and never the mechanism. */
+.tabular {
+  font-family: var(--font-data);
+  font-variant-numeric: tabular-nums;
+}
+
+.label-caps {
+  text-transform: uppercase;
+  letter-spacing: var(--track-caps);
+  font-size: var(--text-meta);
+  font-weight: var(--weight-bold);
+}
+
+/* A band cancels the page padding to span the shell's outer box. Neither
+   width:100vw nor width:100% is correct: inside a split track both resolve to
+   the wrong box, and 100vw ignores the scrollbar. */
+.bleed {
+  margin-inline: calc(-1 * var(--page-pad));
+  padding-inline: var(--page-pad);
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+@media print {
+  /* prefers-color-scheme is not suppressed for print, so a dark-mode reader
+     exports a black page unless the role layer is reset to light here. */
+  :root,
+  html.dark {
+    color-scheme: light;
+    --bg: var(--ivory);
+    --surface: var(--white);
+    --wash: var(--wash-l);
+    --line: var(--line-l);
+    --line-strong: var(--line-strong-l);
+    --ink: var(--slate);
+    --body: var(--gray-700);
+    --muted: var(--gray-600);
+    --s1: var(--indigo);
+    --s2: var(--ochre);
+    --s3: var(--plum);
+    --s4: var(--teal);
+    --s5: var(--clay);
+    --critical: var(--red);
+    --critical-mark: var(--red);
+    --warning: var(--amber);
+    --warning-mark: var(--amber);
+    --positive: var(--blue);
+    --positive-mark: var(--blue);
+    --oat: var(--oat-l);
+    --accent: var(--clay);
+    --accent-mark: var(--clay);
+    --accent-solid: var(--clay);       --on-accent: var(--white);
+    --critical-solid: var(--red);      --on-critical: var(--white);
+    --warning-solid: var(--amber);     --on-warning: var(--white);
+    --positive-solid: var(--blue);     --on-positive: var(--white);
+    --critical-soft: var(--red-soft);      --critical-line: var(--red-line);
+    --warning-soft: var(--amber-soft);     --warning-line: var(--amber-line);
+    --positive-soft: var(--blue-soft);     --positive-line: var(--blue-line);
+    --accent-soft: var(--clay-soft);       --accent-line: var(--clay-line);
+    --critical-hover: var(--red-hover);
+    --positive-hover: var(--blue-hover);
+    --accent-hover: var(--clay-hover);
+    --leading-normal: 1.45;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--body);
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  thead { display: table-header-group; }
+  tr, figure, pre { break-inside: avoid; }
+  h1, h2, h3 { break-after: avoid; }
+  p { orphans: 3; widows: 3; }
+
+  .no-print { display: none; }
+
+  @page { margin: 16mm; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+/* @house-style-tokens:end */
+
+  /* Legacy names this file's own CSS still resolves, pointed at the
+     token block above so there is one source for every value. */
+  :root {
+    --serif: var(--font-display);
+    --sans: var(--font-prose);
+    --mono: var(--font-data);
   }
 
   * { margin: 0; padding: 0; box-sizing: border-box; }
 
   body {
-    background: var(--ivory);
-    color: var(--slate);
+    background: var(--bg);
+    color: var(--ink);
     font-family: var(--sans);
-    -webkit-font-smoothing: antialiased;
-    padding: 64px 24px 96px;
+    padding: var(--sp-64) var(--sp-24) var(--sp-96);
   }
 
   .sheet {
-    max-width: 760px;
+    max-width: var(--w-text);
     margin: 0 auto;
   }
 
-  header { margin-bottom: 56px; }
+  header { margin-bottom: var(--sp-64); }
 
   h1 {
     font-family: var(--serif);
-    font-weight: 500;
-    font-size: 34px;
+    font-weight: var(--weight-normal);
+    font-size: var(--text-h1);
     letter-spacing: -0.01em;
-    margin-bottom: 10px;
+    margin-bottom: var(--sp-12);
   }
 
   .lead {
-    font-size: 14px;
+    font-size: var(--text-body);
     line-height: 1.6;
-    color: var(--gray-700);
-    max-width: 560px;
+    color: var(--body);
+    max-width: var(--w-measure);
   }
 
   .meta {
     font-family: var(--mono);
-    font-size: 11px;
-    color: var(--gray-500);
-    margin-top: 18px;
+    font-size: var(--text-micro);
+    color: var(--muted);
+    margin-top: var(--sp-20);
   }
 
   /* ---------------------------------------------------------------- */
 
   figure {
-    margin: 0 0 72px 0;
+    margin: 0 0 var(--sp-96) 0;
   }
 
   .canvas {
-    border: 1px solid var(--gray-300);
-    border-radius: 12px;
+    border: 1px solid var(--line);
+    border-radius: var(--r-12);
     overflow: hidden;
-    background: var(--ivory);
+    background: var(--bg);
   }
 
   .canvas svg { display: block; width: 100%; height: auto; }
@@ -80,34 +455,34 @@
     display: flex;
     align-items: baseline;
     justify-content: space-between;
-    gap: 24px;
-    padding: 18px 4px 0;
+    gap: var(--sp-24);
+    padding: var(--sp-20) var(--sp-4) 0;
   }
 
   .cap-text { flex: 1; }
 
   .cap-title {
     font-family: var(--serif);
-    font-size: 19px;
-    font-weight: 500;
-    margin-bottom: 4px;
+    font-size: var(--text-h4);
+    font-weight: var(--weight-normal);
+    margin-bottom: var(--sp-4);
   }
 
   .cap-sub {
-    font-size: 13px;
+    font-size: var(--text-meta);
     line-height: 1.55;
-    color: var(--gray-500);
+    color: var(--muted);
   }
 
   .dl {
     flex-shrink: 0;
     font-family: var(--mono);
-    font-size: 11px;
-    color: var(--slate);
-    background: var(--gray-150);
-    border: 1px solid var(--gray-300);
-    border-radius: 6px;
-    padding: 7px 12px;
+    font-size: var(--text-micro);
+    color: var(--ink);
+    background: var(--wash);
+    border: 1px solid var(--line);
+    border-radius: var(--r-8);
+    padding: var(--sp-8) var(--sp-12);
     cursor: pointer;
   }
   .dl:hover { background: var(--oat); }
@@ -117,30 +492,30 @@
      Palette reference strip
      ---------------------------------------------------------------- */
   .palette {
-    border-top: 1px solid var(--gray-300);
-    padding-top: 36px;
-    margin-top: 8px;
+    border-top: 1px solid var(--line);
+    padding-top: var(--sp-32);
+    margin-top: var(--sp-8);
   }
 
   .palette h2 {
     font-family: var(--serif);
-    font-weight: 500;
-    font-size: 19px;
-    margin-bottom: 18px;
+    font-weight: var(--weight-normal);
+    font-size: var(--text-h4);
+    margin-bottom: var(--sp-20);
   }
 
   .swatches {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(112px, 1fr));
-    gap: 10px;
-    margin-bottom: 32px;
+    gap: var(--sp-12);
+    margin-bottom: var(--sp-32);
   }
 
   .swatch {
-    border: 1px solid var(--gray-300);
-    border-radius: 8px;
+    border: 1px solid var(--line);
+    border-radius: var(--r-8);
     overflow: hidden;
-    background: #fff;
+    background: var(--surface);
   }
 
   .swatch-chip {
@@ -148,31 +523,31 @@
   }
 
   .swatch-meta {
-    padding: 8px 10px 10px;
+    padding: var(--sp-8) var(--sp-12) var(--sp-12);
   }
 
   .swatch-name {
-    font-size: 12px;
-    color: var(--gray-700);
+    font-size: var(--text-meta);
+    color: var(--body);
   }
 
   .swatch-hex {
     font-family: var(--mono);
-    font-size: 10px;
-    color: var(--gray-500);
+    font-size: var(--text-micro);
+    color: var(--muted);
   }
 
   .notes {
-    font-size: 13px;
+    font-size: var(--text-meta);
     line-height: 1.7;
-    color: var(--gray-700);
+    color: var(--body);
     list-style: none;
   }
 
   .notes li {
-    padding-left: 18px;
+    padding-left: var(--sp-20);
     position: relative;
-    margin-bottom: 6px;
+    margin-bottom: var(--sp-8);
   }
 
   .notes li::before {
@@ -182,9 +557,58 @@
     top: 0.65em;
     width: 8px;
     height: 1px;
-    background: var(--gray-500);
+    background: var(--fill);
   }
 </style>
+<!-- @house-style-theme:begin — generated from house-style-theme.html, do not hand-edit -->
+<script>
+  /* The class is set before the body paints, so a dark-mode reader never sees a
+     light flash. localStorage wins over the OS preference because a reader who
+     has chosen on this page has chosen more specifically. */
+  (function () {
+    const saved = localStorage.getItem('theme');
+    const dark = saved ? saved === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+    document.documentElement.classList.toggle('dark', dark);
+
+    addEventListener('DOMContentLoaded', function () {
+      const button = document.createElement('button');
+      button.id = 'themeToggle';
+      button.type = 'button';
+      button.textContent = 'Theme';
+      button.setAttribute('aria-label', 'Switch between light and dark');
+      button.addEventListener('click', function () {
+        const next = !document.documentElement.classList.contains('dark');
+        document.documentElement.classList.toggle('dark', next);
+        localStorage.setItem('theme', next ? 'dark' : 'light');
+      });
+      document.body.appendChild(button);
+    });
+  })();
+</script>
+<style>
+  /* Fixed rather than in the flow: this fragment is shared across documents whose
+     headers all differ, and a fixed corner is the one position every layout has. */
+  #themeToggle {
+    position: fixed;
+    top: var(--sp-16);
+    right: var(--sp-16);
+    z-index: 50;
+    min-height: var(--sp-24);
+    padding: var(--sp-4) var(--sp-12);
+    font-family: var(--font-data);
+    font-size: var(--text-meta-data);
+    text-transform: uppercase;
+    letter-spacing: var(--track-caps);
+    color: var(--muted);
+    background: var(--surface);
+    border: var(--hairline) solid var(--line);
+    border-radius: var(--r-full);
+    cursor: pointer;
+  }
+  #themeToggle:hover { color: var(--ink); border-color: var(--line-strong); }
+  @media print { #themeToggle { display: none; } }
+</style>
+<!-- @house-style-theme:end -->
 </head>
 <body>
 <div class="sheet">
@@ -207,49 +631,49 @@
       <svg id="ill-queue" xmlns="http://www.w3.org/2000/svg" width="720" height="320" viewBox="0 0 720 320">
         <defs>
           <style>
-            .m { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 11px; }
-            .s { font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; font-size: 12px; }
+            .m { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: var(--text-micro); }
+            .s { font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; font-size: var(--text-meta); }
           </style>
           <marker id="qa" markerWidth="10" markerHeight="10" refX="8" refY="4" orient="auto" markerUnits="userSpaceOnUse">
-            <path d="M0,0 L0,8 L8,4 z" fill="#87867F"/>
+            <path d="M0,0 L0,8 L8,4 z" fill="var(--fill)"/>
           </marker>
         </defs>
 
-        <rect width="720" height="320" fill="#FAF9F5"/>
+        <rect width="720" height="320" fill="var(--bg)"/>
 
         <!-- queue label -->
-        <text x="60" y="96" class="s" fill="#87867F">queue</text>
+        <text x="60" y="96" class="s" fill="var(--fill)">queue</text>
 
         <!-- five job rects -->
         <g>
-          <rect x="60"  y="110" width="70" height="100" rx="10" fill="#F0EEE6" stroke="#3D3D3A" stroke-width="1.5"/>
-          <text x="95"  y="164" text-anchor="middle" class="m" fill="#3D3D3A">job 5</text>
+          <rect x="60"  y="110" width="70" height="100" rx="10" fill="var(--wash)" stroke="var(--body)" stroke-width="1.5"/>
+          <text x="95"  y="164" text-anchor="middle" class="m" fill="var(--body)">job 5</text>
 
-          <rect x="140" y="110" width="70" height="100" rx="10" fill="#F0EEE6" stroke="#3D3D3A" stroke-width="1.5"/>
-          <text x="175" y="164" text-anchor="middle" class="m" fill="#3D3D3A">job 4</text>
+          <rect x="140" y="110" width="70" height="100" rx="10" fill="var(--wash)" stroke="var(--body)" stroke-width="1.5"/>
+          <text x="175" y="164" text-anchor="middle" class="m" fill="var(--body)">job 4</text>
 
-          <rect x="220" y="110" width="70" height="100" rx="10" fill="#F0EEE6" stroke="#3D3D3A" stroke-width="1.5"/>
-          <text x="255" y="164" text-anchor="middle" class="m" fill="#3D3D3A">job 3</text>
+          <rect x="220" y="110" width="70" height="100" rx="10" fill="var(--wash)" stroke="var(--body)" stroke-width="1.5"/>
+          <text x="255" y="164" text-anchor="middle" class="m" fill="var(--body)">job 3</text>
 
-          <rect x="300" y="110" width="70" height="100" rx="10" fill="#F0EEE6" stroke="#3D3D3A" stroke-width="1.5"/>
-          <text x="335" y="164" text-anchor="middle" class="m" fill="#3D3D3A">job 2</text>
+          <rect x="300" y="110" width="70" height="100" rx="10" fill="var(--wash)" stroke="var(--body)" stroke-width="1.5"/>
+          <text x="335" y="164" text-anchor="middle" class="m" fill="var(--body)">job 2</text>
 
           <!-- head of queue, highlighted -->
-          <rect x="380" y="110" width="70" height="100" rx="10" fill="#D97757" stroke="#141413" stroke-width="2"/>
-          <text x="415" y="164" text-anchor="middle" class="m" fill="#FAF9F5">job 1</text>
+          <rect x="380" y="110" width="70" height="100" rx="10" fill="var(--accent)" stroke="var(--ink)" stroke-width="2"/>
+          <text x="415" y="164" text-anchor="middle" class="m" fill="var(--bg)">job 1</text>
         </g>
 
         <!-- arrow to worker -->
-        <line x1="458" y1="160" x2="522" y2="160" stroke="#87867F" stroke-width="1.5" marker-end="url(#qa)"/>
+        <line x1="458" y1="160" x2="522" y2="160" stroke="var(--fill)" stroke-width="1.5" marker-end="url(#qa)"/>
 
         <!-- worker -->
-        <rect x="530" y="90" width="130" height="140" rx="10" fill="#E3DACC" stroke="#141413" stroke-width="2"/>
-        <text x="595" y="156" text-anchor="middle" class="m" fill="#141413">worker</text>
-        <text x="595" y="172" text-anchor="middle" class="m" fill="#87867F">pool=4</text>
+        <rect x="530" y="90" width="130" height="140" rx="10" fill="var(--oat)" stroke="var(--ink)" stroke-width="2"/>
+        <text x="595" y="156" text-anchor="middle" class="m" fill="var(--ink)">worker</text>
+        <text x="595" y="172" text-anchor="middle" class="m" fill="var(--fill)">pool=4</text>
 
         <!-- annotations -->
-        <text x="415" y="234" text-anchor="middle" class="s" fill="#87867F">next to run</text>
-        <text x="60"  y="258" class="s" fill="#87867F">Jobs are pulled FIFO; the worker leases one at a time.</text>
+        <text x="415" y="234" text-anchor="middle" class="s" fill="var(--fill)">next to run</text>
+        <text x="60"  y="258" class="s" fill="var(--fill)">Jobs are pulled FIFO; the worker leases one at a time.</text>
       </svg>
     </div>
     <figcaption>
@@ -269,54 +693,54 @@
       <svg id="ill-retry" xmlns="http://www.w3.org/2000/svg" width="720" height="320" viewBox="0 0 720 320">
         <defs>
           <style>
-            .m { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 11px; }
-            .s { font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; font-size: 12px; }
+            .m { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: var(--text-micro); }
+            .s { font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; font-size: var(--text-meta); }
           </style>
         </defs>
 
-        <rect width="720" height="320" fill="#FAF9F5"/>
+        <rect width="720" height="320" fill="var(--bg)"/>
 
         <!-- timeline axis -->
-        <line x1="60" y1="190" x2="660" y2="190" stroke="#D1CFC5" stroke-width="1.5"/>
-        <text x="60" y="214" class="s" fill="#87867F">t = 0</text>
-        <text x="660" y="214" text-anchor="end" class="s" fill="#87867F">time →</text>
+        <line x1="60" y1="190" x2="660" y2="190" stroke="var(--line)" stroke-width="1.5"/>
+        <text x="60" y="214" class="s" fill="var(--fill)">t = 0</text>
+        <text x="660" y="214" text-anchor="end" class="s" fill="var(--fill)">time →</text>
 
         <!-- attempts: exponential spacing at x = 100, 170, 310, 590 -->
         <!-- attempt 1 (fail) -->
-        <circle cx="100" cy="190" r="8" fill="#FAF9F5" stroke="#D97757" stroke-width="2"/>
-        <line x1="96" y1="186" x2="104" y2="194" stroke="#D97757" stroke-width="1.5"/>
-        <line x1="104" y1="186" x2="96" y2="194" stroke="#D97757" stroke-width="1.5"/>
-        <text x="100" y="222" text-anchor="middle" class="m" fill="#3D3D3A">try 1</text>
+        <circle cx="100" cy="190" r="8" fill="var(--bg)" stroke="var(--accent)" stroke-width="2"/>
+        <line x1="96" y1="186" x2="104" y2="194" stroke="var(--accent)" stroke-width="1.5"/>
+        <line x1="104" y1="186" x2="96" y2="194" stroke="var(--accent)" stroke-width="1.5"/>
+        <text x="100" y="222" text-anchor="middle" class="m" fill="var(--body)">try 1</text>
 
         <!-- attempt 2 (fail) -->
-        <circle cx="170" cy="190" r="8" fill="#FAF9F5" stroke="#D97757" stroke-width="2"/>
-        <line x1="166" y1="186" x2="174" y2="194" stroke="#D97757" stroke-width="1.5"/>
-        <line x1="174" y1="186" x2="166" y2="194" stroke="#D97757" stroke-width="1.5"/>
-        <text x="170" y="222" text-anchor="middle" class="m" fill="#3D3D3A">try 2</text>
+        <circle cx="170" cy="190" r="8" fill="var(--bg)" stroke="var(--accent)" stroke-width="2"/>
+        <line x1="166" y1="186" x2="174" y2="194" stroke="var(--accent)" stroke-width="1.5"/>
+        <line x1="174" y1="186" x2="166" y2="194" stroke="var(--accent)" stroke-width="1.5"/>
+        <text x="170" y="222" text-anchor="middle" class="m" fill="var(--body)">try 2</text>
 
         <!-- attempt 3 (fail) -->
-        <circle cx="310" cy="190" r="8" fill="#FAF9F5" stroke="#D97757" stroke-width="2"/>
-        <line x1="306" y1="186" x2="314" y2="194" stroke="#D97757" stroke-width="1.5"/>
-        <line x1="314" y1="186" x2="306" y2="194" stroke="#D97757" stroke-width="1.5"/>
-        <text x="310" y="222" text-anchor="middle" class="m" fill="#3D3D3A">try 3</text>
+        <circle cx="310" cy="190" r="8" fill="var(--bg)" stroke="var(--accent)" stroke-width="2"/>
+        <line x1="306" y1="186" x2="314" y2="194" stroke="var(--accent)" stroke-width="1.5"/>
+        <line x1="314" y1="186" x2="306" y2="194" stroke="var(--accent)" stroke-width="1.5"/>
+        <text x="310" y="222" text-anchor="middle" class="m" fill="var(--body)">try 3</text>
 
         <!-- attempt 4 (success) -->
-        <circle cx="590" cy="190" r="9" fill="#788C5D" stroke="#141413" stroke-width="1.5"/>
-        <path d="M585,190 L589,194 L596,185" fill="none" stroke="#FAF9F5" stroke-width="1.5" stroke-linecap="round"/>
-        <text x="590" y="222" text-anchor="middle" class="m" fill="#3D3D3A">try 4</text>
+        <circle cx="590" cy="190" r="9" fill="var(--positive-mark)" stroke="var(--ink)" stroke-width="1.5"/>
+        <path d="M585,190 L589,194 L596,185" fill="none" stroke="var(--bg)" stroke-width="1.5" stroke-linecap="round"/>
+        <text x="590" y="222" text-anchor="middle" class="m" fill="var(--body)">try 4</text>
 
         <!-- dashed backoff arcs (loop back over the gap) -->
-        <path d="M 100 182 Q 135 130 170 182" fill="none" stroke="#87867F" stroke-width="1.5" stroke-dasharray="4 4"/>
-        <text x="135" y="124" text-anchor="middle" class="m" fill="#87867F">+1s</text>
+        <path d="M 100 182 Q 135 130 170 182" fill="none" stroke="var(--fill)" stroke-width="1.5" stroke-dasharray="4 4"/>
+        <text x="135" y="124" text-anchor="middle" class="m" fill="var(--fill)">+1s</text>
 
-        <path d="M 170 182 Q 240 110 310 182" fill="none" stroke="#87867F" stroke-width="1.5" stroke-dasharray="4 4"/>
-        <text x="240" y="104" text-anchor="middle" class="m" fill="#87867F">+2s</text>
+        <path d="M 170 182 Q 240 110 310 182" fill="none" stroke="var(--fill)" stroke-width="1.5" stroke-dasharray="4 4"/>
+        <text x="240" y="104" text-anchor="middle" class="m" fill="var(--fill)">+2s</text>
 
-        <path d="M 310 182 Q 450 80 590 182" fill="none" stroke="#87867F" stroke-width="1.5" stroke-dasharray="4 4"/>
-        <text x="450" y="74" text-anchor="middle" class="m" fill="#87867F">+4s</text>
+        <path d="M 310 182 Q 450 80 590 182" fill="none" stroke="var(--fill)" stroke-width="1.5" stroke-dasharray="4 4"/>
+        <text x="450" y="74" text-anchor="middle" class="m" fill="var(--fill)">+4s</text>
 
         <!-- annotation -->
-        <text x="60" y="262" class="s" fill="#87867F">Each failure waits twice as long before re-queuing; jitter not pictured.</text>
+        <text x="60" y="262" class="s" fill="var(--fill)">Each failure waits twice as long before re-queuing; jitter not pictured.</text>
       </svg>
     </div>
     <figcaption>
@@ -336,57 +760,57 @@
       <svg id="ill-fanout" xmlns="http://www.w3.org/2000/svg" width="720" height="320" viewBox="0 0 720 320">
         <defs>
           <style>
-            .m { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 11px; }
-            .s { font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; font-size: 12px; }
+            .m { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: var(--text-micro); }
+            .s { font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; font-size: var(--text-meta); }
           </style>
           <marker id="fa" markerWidth="9" markerHeight="9" refX="7" refY="3.5" orient="auto" markerUnits="userSpaceOnUse">
-            <path d="M0,0 L0,7 L7,3.5 z" fill="#87867F"/>
+            <path d="M0,0 L0,7 L7,3.5 z" fill="var(--fill)"/>
           </marker>
         </defs>
 
-        <rect width="720" height="320" fill="#FAF9F5"/>
+        <rect width="720" height="320" fill="var(--bg)"/>
 
         <!-- source -->
-        <rect x="60" y="128" width="110" height="64" rx="10" fill="#E3DACC" stroke="#141413" stroke-width="2"/>
-        <text x="115" y="158" text-anchor="middle" class="m" fill="#141413">enqueue</text>
-        <text x="115" y="172" text-anchor="middle" class="m" fill="#87867F">batch()</text>
+        <rect x="60" y="128" width="110" height="64" rx="10" fill="var(--oat)" stroke="var(--ink)" stroke-width="2"/>
+        <text x="115" y="158" text-anchor="middle" class="m" fill="var(--ink)">enqueue</text>
+        <text x="115" y="172" text-anchor="middle" class="m" fill="var(--fill)">batch()</text>
 
         <!-- fan-out arrows: from (170,160) to four shard boxes at x=300 -->
-        <line x1="170" y1="160" x2="296" y2="64"  stroke="#87867F" stroke-width="1.5" marker-end="url(#fa)"/>
-        <line x1="170" y1="160" x2="296" y2="128" stroke="#87867F" stroke-width="1.5" marker-end="url(#fa)"/>
-        <line x1="170" y1="160" x2="296" y2="192" stroke="#87867F" stroke-width="1.5" marker-end="url(#fa)"/>
-        <line x1="170" y1="160" x2="296" y2="256" stroke="#87867F" stroke-width="1.5" marker-end="url(#fa)"/>
+        <line x1="170" y1="160" x2="296" y2="64"  stroke="var(--fill)" stroke-width="1.5" marker-end="url(#fa)"/>
+        <line x1="170" y1="160" x2="296" y2="128" stroke="var(--fill)" stroke-width="1.5" marker-end="url(#fa)"/>
+        <line x1="170" y1="160" x2="296" y2="192" stroke="var(--fill)" stroke-width="1.5" marker-end="url(#fa)"/>
+        <line x1="170" y1="160" x2="296" y2="256" stroke="var(--fill)" stroke-width="1.5" marker-end="url(#fa)"/>
 
         <!-- four shard boxes -->
         <g>
-          <rect x="300" y="44"  width="120" height="40" rx="10" fill="#F0EEE6" stroke="#3D3D3A" stroke-width="1.5"/>
-          <text x="360" y="69"  text-anchor="middle" class="m" fill="#3D3D3A">shard 0</text>
+          <rect x="300" y="44"  width="120" height="40" rx="10" fill="var(--wash)" stroke="var(--body)" stroke-width="1.5"/>
+          <text x="360" y="69"  text-anchor="middle" class="m" fill="var(--body)">shard 0</text>
 
-          <rect x="300" y="108" width="120" height="40" rx="10" fill="#F0EEE6" stroke="#3D3D3A" stroke-width="1.5"/>
-          <text x="360" y="133" text-anchor="middle" class="m" fill="#3D3D3A">shard 1</text>
+          <rect x="300" y="108" width="120" height="40" rx="10" fill="var(--wash)" stroke="var(--body)" stroke-width="1.5"/>
+          <text x="360" y="133" text-anchor="middle" class="m" fill="var(--body)">shard 1</text>
 
-          <rect x="300" y="172" width="120" height="40" rx="10" fill="#F0EEE6" stroke="#3D3D3A" stroke-width="1.5"/>
-          <text x="360" y="197" text-anchor="middle" class="m" fill="#3D3D3A">shard 2</text>
+          <rect x="300" y="172" width="120" height="40" rx="10" fill="var(--wash)" stroke="var(--body)" stroke-width="1.5"/>
+          <text x="360" y="197" text-anchor="middle" class="m" fill="var(--body)">shard 2</text>
 
-          <rect x="300" y="236" width="120" height="40" rx="10" fill="#F0EEE6" stroke="#3D3D3A" stroke-width="1.5"/>
-          <text x="360" y="261" text-anchor="middle" class="m" fill="#3D3D3A">shard 3</text>
+          <rect x="300" y="236" width="120" height="40" rx="10" fill="var(--wash)" stroke="var(--body)" stroke-width="1.5"/>
+          <text x="360" y="261" text-anchor="middle" class="m" fill="var(--body)">shard 3</text>
         </g>
 
         <!-- converge arrows to merge -->
-        <line x1="420" y1="64"  x2="546" y2="160" stroke="#87867F" stroke-width="1.5" marker-end="url(#fa)"/>
-        <line x1="420" y1="128" x2="546" y2="160" stroke="#87867F" stroke-width="1.5" marker-end="url(#fa)"/>
-        <line x1="420" y1="192" x2="546" y2="160" stroke="#87867F" stroke-width="1.5" marker-end="url(#fa)"/>
-        <line x1="420" y1="256" x2="546" y2="160" stroke="#87867F" stroke-width="1.5" marker-end="url(#fa)"/>
+        <line x1="420" y1="64"  x2="546" y2="160" stroke="var(--fill)" stroke-width="1.5" marker-end="url(#fa)"/>
+        <line x1="420" y1="128" x2="546" y2="160" stroke="var(--fill)" stroke-width="1.5" marker-end="url(#fa)"/>
+        <line x1="420" y1="192" x2="546" y2="160" stroke="var(--fill)" stroke-width="1.5" marker-end="url(#fa)"/>
+        <line x1="420" y1="256" x2="546" y2="160" stroke="var(--fill)" stroke-width="1.5" marker-end="url(#fa)"/>
 
         <!-- merge box -->
-        <rect x="550" y="128" width="110" height="64" rx="10" fill="#788C5D" stroke="#141413" stroke-width="2"/>
-        <text x="605" y="158" text-anchor="middle" class="m" fill="#FAF9F5">merge</text>
-        <text x="605" y="172" text-anchor="middle" class="m" fill="#E3DACC">await all</text>
+        <rect x="550" y="128" width="110" height="64" rx="10" fill="var(--positive-mark)" stroke="var(--ink)" stroke-width="2"/>
+        <text x="605" y="158" text-anchor="middle" class="m" fill="var(--bg)">merge</text>
+        <text x="605" y="172" text-anchor="middle" class="m" fill="var(--oat)">await all</text>
 
         <!-- annotations -->
-        <text x="232" y="42"  class="s" fill="#87867F">fan-out</text>
-        <text x="486" y="42"  text-anchor="end" class="s" fill="#87867F">fan-in</text>
-        <text x="60"  y="300" class="s" fill="#87867F">Parent job spawns N children, then blocks on a completion barrier.</text>
+        <text x="232" y="42"  class="s" fill="var(--fill)">fan-out</text>
+        <text x="486" y="42"  text-anchor="end" class="s" fill="var(--fill)">fan-in</text>
+        <text x="60"  y="300" class="s" fill="var(--fill)">Parent job spawns N children, then blocks on a completion barrier.</text>
       </svg>
     </div>
     <figcaption>
@@ -406,56 +830,56 @@
 
     <div class="swatches">
       <div class="swatch">
-        <div class="swatch-chip" style="background:#FAF9F5"></div>
+        <div class="swatch-chip" style="background:var(--bg)"></div>
         <div class="swatch-meta">
           <div class="swatch-name">ivory</div>
           <div class="swatch-hex">#FAF9F5</div>
         </div>
       </div>
       <div class="swatch">
-        <div class="swatch-chip" style="background:#141413"></div>
+        <div class="swatch-chip" style="background:var(--panel)"></div>
         <div class="swatch-meta">
           <div class="swatch-name">slate</div>
           <div class="swatch-hex">#141413</div>
         </div>
       </div>
       <div class="swatch">
-        <div class="swatch-chip" style="background:#D97757"></div>
+        <div class="swatch-chip" style="background:var(--accent)"></div>
         <div class="swatch-meta">
           <div class="swatch-name">clay</div>
           <div class="swatch-hex">#D97757</div>
         </div>
       </div>
       <div class="swatch">
-        <div class="swatch-chip" style="background:#788C5D"></div>
+        <div class="swatch-chip" style="background:var(--positive)"></div>
         <div class="swatch-meta">
           <div class="swatch-name">olive</div>
           <div class="swatch-hex">#788C5D</div>
         </div>
       </div>
       <div class="swatch">
-        <div class="swatch-chip" style="background:#E3DACC"></div>
+        <div class="swatch-chip" style="background:var(--oat)"></div>
         <div class="swatch-meta">
           <div class="swatch-name">oat</div>
           <div class="swatch-hex">#E3DACC</div>
         </div>
       </div>
       <div class="swatch">
-        <div class="swatch-chip" style="background:#F0EEE6"></div>
+        <div class="swatch-chip" style="background:var(--wash)"></div>
         <div class="swatch-meta">
           <div class="swatch-name">gray-150</div>
           <div class="swatch-hex">#F0EEE6</div>
         </div>
       </div>
       <div class="swatch">
-        <div class="swatch-chip" style="background:#D1CFC5"></div>
+        <div class="swatch-chip" style="background:var(--wash)"></div>
         <div class="swatch-meta">
           <div class="swatch-name">gray-300</div>
           <div class="swatch-hex">#D1CFC5</div>
         </div>
       </div>
       <div class="swatch">
-        <div class="swatch-chip" style="background:#87867F"></div>
+        <div class="swatch-chip" style="background:var(--fill)"></div>
         <div class="swatch-meta">
           <div class="swatch-name">gray-500</div>
           <div class="swatch-hex">#87867F</div>
