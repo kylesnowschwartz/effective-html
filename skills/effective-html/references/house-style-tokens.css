@@ -156,6 +156,15 @@
 
   /* -- elevation ---------------------------------------------------------- */
   --shadow-card: 0 6px 24px rgba(0, 0, 0, 0.08);
+  /* A negative spread, so the shadow reads as a lifted edge rather than a halo. */
+  --shadow-edge: 0 10px 16px -12px rgba(0, 0, 0, 0.35);
+
+  /* -- motion: two curves ------------------------------------------------
+     Standard for anything that moves between two states. Overshoot only for
+     a deliberate bounce, which is a decision about the animation rather than
+     a default. */
+  --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-overshoot: cubic-bezier(0.34, 1.56, 0.64, 1);
 
   /* -- role: light -------------------------------------------------------- */
   --bg: var(--ivory);
@@ -218,6 +227,9 @@
   --invert: var(--ink);
   --on-invert: var(--bg);
   --on-invert-muted: var(--gray-350);
+  /* The accent inverts too: --accent is solved against the page, and an inverted
+     band is the opposite of the page, so it takes the other mode's step. */
+  --on-invert-accent: var(--clay-text-on-dark);
 
   --zone: rgba(20, 20, 19, 0.025);
   /* A banded row inside an always-dark panel. It cannot use --zone, which
@@ -243,6 +255,19 @@
      panel on ivory is already its own boundary, so the edge takes the panel's
      colour there and disappears. */
   --panel-edge: var(--panel);
+  /* A panel's own status steps. A diff row inside an always-dark panel cannot take
+     --positive-soft: that tint is solved against the page and flips, so in light
+     mode it paints a pale band inside a black panel and the panel's own ink lands
+     on it at 1.14:1. These hold the on-dark steps in both modes, like the rest of
+     the panel roles. */
+  --panel-critical: var(--red-text-on-dark);
+  --panel-positive: var(--blue-text-on-dark);
+  /* A step up from the plain dark accent, because this one also has to clear AA
+     on the panel's own tinted rows, not only on the panel: --clay-text-on-dark
+     is 4.47:1 on --panel-positive-soft. */
+  --panel-accent: var(--clay-hover-on-dark);
+  --panel-critical-soft: var(--red-soft-on-dark);
+  --panel-positive-soft: var(--blue-soft-on-dark);
 
   /* A scrim behind a modal or over an image. Dark in both modes: it darkens
      whatever it covers rather than following the page. */
@@ -293,9 +318,11 @@ html.dark {
 
   --panel-edge: var(--gray-600);
   --on-invert-muted: var(--gray-600);
+  --on-invert-accent: var(--clay);
 
   --zone: rgba(250, 249, 245, 0.03);
   --shadow-card: 0 6px 24px rgba(0, 0, 0, 0.45);
+  --shadow-edge: 0 10px 16px -12px rgba(0, 0, 0, 0.45);
 
   /* Light-on-dark reads heavier than dark-on-light at the same weight, and a
      weight step down is unavailable on two-weight faces. Loosen instead. */
@@ -358,6 +385,7 @@ html {
     --oat: var(--oat-l);
     --panel-edge: var(--panel);
     --on-invert-muted: var(--gray-350);
+    --on-invert-accent: var(--clay-text-on-dark);
     --accent: var(--clay);
     --accent-mark: var(--clay);
     --accent-solid: var(--clay);       --on-accent: var(--white);

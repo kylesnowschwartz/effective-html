@@ -48,12 +48,14 @@ SOLID_PAIRS = (
 # their own tier: they hold one colour in both modes, so the mode-aware tiers are
 # the wrong measurement there.
 SURFACE_TEXT = {
-    "surface": "muted",
-    "wash": "muted",
-    "oat": "muted",
-    "invert": "on-invert-muted",
-    "panel": "panel-muted",
-    "panel-raised": "panel-muted",
+    "surface": ("muted",),
+    "wash": ("muted",),
+    "oat": ("muted",),
+    "invert": ("on-invert-muted", "on-invert-accent"),
+    "panel": ("panel-muted", "panel-critical", "panel-positive", "panel-accent"),
+    "panel-raised": ("panel-muted",),
+    "panel-critical-soft": ("panel-ink", "panel-body", "panel-accent"),
+    "panel-positive-soft": ("panel-ink", "panel-body", "panel-accent"),
 }
 
 # A surface has to be findable against the page it sits on, by its own fill or by
@@ -197,7 +199,8 @@ def main() -> int:
                 f"label {text:5.2f}:1  {verdict}"
             )
 
-        for surface_role, text_role in SURFACE_TEXT.items():
+        for surface_role, text_roles in SURFACE_TEXT.items():
+          for text_role in text_roles:
             surface = resolve(f"--{surface_role}", table)
             ink = resolve(f"--{text_role}", table)
             if surface is None or ink is None:
