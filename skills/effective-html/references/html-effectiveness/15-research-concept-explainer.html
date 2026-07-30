@@ -515,7 +515,7 @@ html {
   .ring .track { fill: none; stroke: var(--line); stroke-width: 14; }
   .ring .arc   { fill: none; stroke-width: 14; transition: stroke-dasharray 300ms ease; }
   .ring .node  { stroke: var(--surface); stroke-width: 2; transition: cx 300ms, cy 300ms, opacity 200ms; }
-  .ring .key   { fill: var(--ink); transition: cx 300ms, cy 300ms; }
+  .ring .key   { stroke: var(--surface); stroke-width: 1.5; transition: cx 300ms, cy 300ms; }
   .ring .lbl   { font-family: var(--mono); font-size: var(--text-micro); fill: var(--fill); }
 
   .controls { font-size: var(--text-meta); }
@@ -671,7 +671,7 @@ html {
         <div class="controls">
           <div class="row">
             <label>nodes</label>
-            <input id="nSlider" type="range" min="2" max="8" value="4">
+            <input id="nSlider" type="range" min="2" max="5" value="4">
             <span class="val" id="nVal">4</span>
           </div>
           <div class="row">
@@ -739,10 +739,16 @@ html {
 /* ── tiny deterministic hash so the demo is stable ── */
 function h(s) {
   let x = 2166136261;
-  for (let i = 0; i < s.length; i++) { x ^= s.charCodeAt(i); x = (x * 16777619) >>> 0; }
-  return x / 4294967296;
+  for (let i = 0; i < s.length; i++) x = Math.imul(x ^ s.charCodeAt(i), 16777619);
+  x ^= x >>> 16; x = Math.imul(x, 2246822507);
+  x ^= x >>> 13; x = Math.imul(x, 3266489909);
+  x ^= x >>> 16;
+  return (x >>> 0) / 4294967296;
 }
-const COLORS = ["#D97757", "#788C5D", "#6A8CAF", "#C2A83E", "#B04A3F", "#87867F", "#3D6E6E", "#A67C52"];
+// Five slots, fixed and never cycled: a sixth node would repeat a colour and two
+// nodes with one colour makes ownership unreadable, which is the whole point here.
+const COLORS = ["var(--s1)", "var(--s2)", "var(--s3)", "var(--s4)", "var(--s5)"];
+const MAX_NODES = COLORS.length;
 const CX = 130, CY = 130, R = 100, RKEY = 78;
 const TAU = Math.PI * 2;
 
@@ -765,11 +771,12 @@ function ownerOf(t) {
 
 function buildNodes(n) {
   nodes = [];
-  for (let i = 0; i < n; i++) nodes.push({ id: "n" + i, t: h("node-" + i), color: COLORS[i % COLORS.length] });
+  for (let i = 0; i < Math.min(n, MAX_NODES); i++)
+    nodes.push({ id: "n" + i, t: h(`cache-${i}.acme.internal`), color: COLORS[i] });
 }
 function buildKeys(k) {
   keys = [];
-  for (let i = 0; i < k; i++) keys.push({ id: "k" + i, t: h("key-" + i) });
+  for (let i = 0; i < k; i++) keys.push({ id: "k" + i, t: h(`session:${i}`) });
 }
 
 function arcPath(t0, t1) {
@@ -827,8 +834,19 @@ function reset() {
 
 nSlider.oninput = () => { nVal.textContent = nSlider.value; buildNodes(+nSlider.value); diffAndRender(); };
 kSlider.oninput = () => { kVal.textContent = kSlider.value; buildKeys(+kSlider.value); lastOwner = {}; for (const k of keys) lastOwner[k.id] = ownerOf(k.t).id; render(null); };
-document.getElementById("rm").onclick = () => { if (nodes.length > 2) { nodes.splice(Math.floor(Math.random() * nodes.length), 1); diffAndRender(); } };
-document.getElementById("add").onclick = () => { if (nodes.length < 12) { const i = nodes.length; nodes.push({ id: "n" + Date.now(), t: Math.random(), color: COLORS[i % COLORS.length] }); diffAndRender(); } };
+document.getElementById("rm").onclick = () => {
+  if (nodes.length <= 2) return;
+  nodes.splice(Math.floor(nodes.reduce((a, n) => a + n.t, 0) * 1e6) % nodes.length, 1);
+  nSlider.value = nVal.textContent = nodes.length;
+  diffAndRender();
+};
+document.getElementById("add").onclick = () => {
+  const free = COLORS.find(c => !nodes.some(n => n.color === c));
+  if (!free) return;
+  nodes.push({ id: "n" + nodes.length + "-" + nodes.reduce((a, n) => a + n.t, 0), t: Math.random(), color: free });
+  nSlider.value = nVal.textContent = nodes.length;
+  diffAndRender();
+};
 document.getElementById("reset").onclick = reset;
 
 /* glossary highlight */
