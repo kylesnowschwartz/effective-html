@@ -22,9 +22,44 @@ Review the example files throughout [`references/html-effectiveness/`](reference
 
 When a request spans modes, pick the dominant one and borrow from the others as needed.
 
+## The house style
+
+[`references/house-style-tokens.css`](references/house-style-tokens.css) **is the authority for every value.** Inline it verbatim as the first thing in the document's `<style>`, and do not retype, round, or re-derive anything in it. Reach a colour through a role token — the job it does — never through a pigment name and never as a literal. The reference files were migrated onto this block; where one of them disagrees with it, the block wins.
+
+The rules below are the ones a visual scan of the examples cannot teach, because they are about what must be true rather than what things look like.
+
+**Colour.**
+
+- **Status hues and series hues never appear as marks in the same figure.** Measured, not advisory: the combined eight-colour set separates by ΔE 5.0 under colourblind simulation and 5.9 in normal vision, both hard failures. One figure is either showing categories or showing states.
+- **Status colour always ships with an icon, an arrow, or a label.** Colour alone carries no meaning for a reader who cannot separate the hues, and the three status hues are re-steps of three of the five series hues.
+- **Series hues are assigned in fixed order — `--s1` through `--s5` — and never cycled.** A sixth series folds into "Other", becomes small multiples, or gets a second encoding.
+- **Text on a status tint is `--body`, never the status colour.** The tints are solved so body text clears AA on them; the role colour stays on the border and the icon.
+- **No hex inside any SVG, in any mode.** Style marks through CSS classes that read theme variables, so the drawing follows the theme. `var()` resolves in SVG presentation attributes and tracks dark mode, so `fill="var(--s1)"` is also fine.
+- **`@media print` re-declares every light role token, including under `html.dark`.** `prefers-color-scheme` is not suppressed for print, so without this block a reader in OS dark mode exports a near-black page.
+
+**Type.**
+
+- **Weights are exactly `400` and `700`.** No other value. Georgia, Menlo, Consolas, DejaVu and Liberation each ship two weights and Segoe UI has no 500 face, so `500` renders as `400` and `600` jumps to full bold. Get emphasis from family or size, not from an intermediate weight.
+- **Never set figures in the serif face.** System Georgia's default figures are oldstyle and carry no `tnum` or `lnum` feature table, so a column of numbers drifts up to 39% in width and no CSS corrects it. Numbers that must align go in `--font-data` with `font-variant-numeric: tabular-nums`.
+- **16px is the prose floor.** 13px is for glanced UI text, metadata, table cells and chart labels; 11px is for a single glanced token. Prose caps at `--w-measure`, which is narrower than the column so tables, charts and code can still use the full width.
+- **The serif / sans / mono split is a determinism device, not a legibility one.** The serif-versus-sans legibility literature is a consistent null; family switching is what renders reliably across platforms where weight switching does not. Do not collapse the three stacks into one.
+
+**Layout.**
+
+- **Size badges, chips and table cells with padding and line-height, never a fixed `height`.** A fixed height is the likeliest way to break text-spacing conformance when a reader's own styles apply.
+- **Long inline runs need three rules, not one:** `code, td, th { overflow-wrap: anywhere }`, `pre { white-space: pre-wrap; overflow-wrap: anywhere }`, and a `.scroll-x { overflow-x: auto }` wrapper around wide tables.
+- **Card grids use `repeat(auto-fit, minmax(min(100%, var(--w-rail)), 1fr))`.** `auto-fill` leaves empty trailing tracks; a bare `minmax` overflows below the floor.
+- **Every interactive target is at least 24×24 CSS px.** A labelled checkbox's target is the label, so wrap the input in one; a slider's target is the thumb, not the track.
+
+### The breaking permission
+
+The layout system is closed. Every width comes from the width set, every gap and pad from the spacing set, every radius from the radius set. You may leave the system in exactly four ways, and only these: `.overhang` (a figure extends into one margin — the widest thing a document may do), `.bleed` (a band cancels the page padding to span the shell's outer box, never the viewport), `.stage` (a viewport-sized interactive canvas), `.off-scale` (a single value outside the scale). Budget per document: at most two `.overhang`, two `.bleed`, one `.stage`, one `.off-scale`. Plan mode gets zero of all four. Every break carries an HTML comment on the line above naming which break it is and why this element needs it. If you cannot write that reason, you do not have a break, you have a mistake.
+
+`.bleed` is already defined in the token block, and its definition is load-bearing: neither `width: 100vw` nor `width: 100%` works, because inside a split track both resolve to the wrong box and `100vw` ignores the scrollbar. Use it as shipped. The other three breaks are yours to write, since each one is specific to the element that needs it.
+
 ## Always (every mode)
 
-Include dark mode: hand-rolled CSS variables on `:root` / `html.dark`, a small theme toggle button, `localStorage` persistence, and an apply-before-paint script in `<head>` (default to `prefers-color-scheme`).
+Include dark mode: the token block's `:root` / `html.dark` blocks, a small theme toggle button, `localStorage` persistence, and an apply-before-paint script in `<head>` (default to `prefers-color-scheme`).
 
 Ship one self-contained file: inline the CSS, the JavaScript, and any data or artwork. If an asset genuinely cannot be inlined, keep the hand-off to that asset plus the HTML — never a build step or a server.
 
