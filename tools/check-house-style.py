@@ -102,7 +102,7 @@ RE_RADIUS = re.compile(r"border-radius:\s*([^;}]+)")
 # A dark mode is a styling construct, not a mention. Matching the bare string
 # anywhere would pass on a file whose only reference is the theme-detection
 # script's matchMedia('(prefers-color-scheme: dark)') call, with no dark styles
-# at all — which is exactly the state of the 20 vendored files.
+# at all.
 RE_DARK_SELECTOR = re.compile(
     r"(?:html|:root|body)\s*\.dark\b"
     r"|\.dark\s+(?:html|:root|body)\b"

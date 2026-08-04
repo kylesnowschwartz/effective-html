@@ -21,8 +21,8 @@ async page => {
       '08-prototype-interaction', '09-slide-deck', '10-svg-illustrations', '11-status-report',
       '12-incident-report', '13-flowchart-diagram', '14-research-feature-explainer',
       '15-research-concept-explainer', '16-implementation-plan', '17-pr-writeup',
-      '18-editor-triage-board', '19-editor-feature-flags', '20-editor-prompt-tuner', 'index']
-      .map(n => 'html-effectiveness/' + n + '.html')];
+      '18-editor-triage-board', '19-editor-feature-flags', '20-editor-prompt-tuner', 'examples-index']
+      .map(n => n + '.html')];
   const out = [];
   for (const file of FILES) {
     for (const theme of ['light', 'dark']) {

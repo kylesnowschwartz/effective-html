@@ -56,10 +56,14 @@ codex plugin add effective-html@effective-html
 
 ## Repository Shape
 
-The skill lives at `skills/effective-html/SKILL.md` and bundles the `html-effectiveness` example corpus under `references/html-effectiveness/`, so the examples stay local to the skill. Two further examples sit beside it: `references/architecture-example.html` and `references/scroll-explainer-example.html`.
+The skill lives at `skills/effective-html/SKILL.md`. Every example sits beside it in `skills/effective-html/references/`, so the examples stay local to the skill:
+
+- `01-`–`20-*.html` — the twenty numbered examples, with `examples-index.html` as their gallery page.
+- `architecture-example.html` and `scroll-explainer-example.html` — the finished examples for the Diagram and Scroll explainer modes.
+- `house-style-tokens.css` and `house-style-theme.html` — the authority for every colour, scale, and dark-mode value. `tools/check-house-style.py`, `tools/check-tokens.py`, and `tools/sync-tokens.py` hold the examples to them.
 
 ## Credit
 
-The `html-effectiveness` example corpus is by Thariq Shihipar: <https://thariqs.github.io/html-effectiveness>
+The twenty numbered examples and their gallery page are adapted from [The unreasonable effectiveness of HTML](https://thariqs.github.io/html-effectiveness) by Thariq Shihipar. They have been restyled onto this repo's house style — tokens, type and spacing scales, dark mode, and contrast floors — and otherwise keep the original structure and content. That work is Copyright 2026 Anthropic PBC under the Apache License 2.0; the license text is at `skills/effective-html/references/EXAMPLES-LICENSE` and governs those files rather than the MIT `LICENSE` covering the rest of this repo.
 
 This repo began as a fork of <https://github.com/plannotator/effective-html> by [backnotprop](https://github.com/backnotprop), which ships the same idea as three separate skills. This version collapses them into one router skill and adds the scroll-explainer mode. MIT licensed, same as the original.

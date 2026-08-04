@@ -9,7 +9,7 @@ One entry point for producing self-contained HTML artifacts in the effective-HTM
 
 ## Read first
 
-Review the example files throughout [`references/html-effectiveness/`](references/html-effectiveness/). Match their alignment — style, density, and tone — as closely as the request allows. Every mode below assumes these examples are in mind.
+Review the numbered example files in [`references/`](references/), indexed by [`references/examples-index.html`](references/examples-index.html). Match their alignment — style, density, and tone — as closely as the request allows. Every mode below assumes these examples are in mind.
 
 ## Mode routing
 
